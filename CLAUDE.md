@@ -36,21 +36,23 @@ python src/main.py
 #### Manual Docker Usage
 ```bash
 # Build and run with docker-compose (recommended)
-docker-compose up claude-cli
+docker compose up claude-cli
 
 # Interactive mode
-docker-compose run --rm claude-cli
+docker compose run --rm claude-cli
 
 # Single message mode
-docker-compose run --rm claude-cli python src/main.py "Your message here"
+docker compose run --rm claude-cli python src/main.py "Your message here"
 
 # Development mode with shell access
-docker-compose run --rm claude-cli-dev
+docker compose run --rm claude-cli-dev
 
 # Build manually
 docker build -t claude-cli .
 docker run -it --rm -v ./.env:/app/.env:ro claude-cli
 ```
+
+**Note**: Use `docker compose` (not `docker-compose`) for compatibility with modern Docker installations.
 
 **Security Note**: Docker containerization provides isolation and sandboxing for tool execution, preventing potential security risks from affecting the host system.
 
@@ -74,13 +76,13 @@ pytest -m unit
 #### Docker Testing
 ```bash
 # Run tests in container
-docker-compose run --rm claude-cli pytest
+docker compose run --rm claude-cli pytest
 
 # Run tests with verbose output
-docker-compose run --rm claude-cli pytest -v
+docker compose run --rm claude-cli pytest -v
 
 # Run specific test file in container
-docker-compose run --rm claude-cli pytest tests/test_chat.py
+docker compose run --rm claude-cli pytest tests/test_chat.py
 ```
 
 **Important**: All tests automatically use API mocking via `tests/conftest.py`. No real API calls are made during testing.
@@ -111,13 +113,13 @@ pre-commit run --all-files
 #### Docker Code Quality
 ```bash
 # Check code style and lint in container
-docker-compose run --rm claude-cli ruff check
+docker compose run --rm claude-cli ruff check
 
 # Format code in container
-docker-compose run --rm claude-cli ruff format
+docker compose run --rm claude-cli ruff format
 
 # Type check code in container
-docker-compose run --rm claude-cli mypy src/
+docker compose run --rm claude-cli mypy src/
 ```
 
 ## Architecture
@@ -132,9 +134,11 @@ docker-compose run --rm claude-cli mypy src/
 ### Streaming Implementation
 The application uses Anthropic's streaming API for real-time output:
 - **`send_message_stream()`**: Generator method that yields text chunks as they arrive
-- **`_handle_tool_use_stream()`**: Maintains streaming even during tool execution
+- **`_handle_tool_use_stream()`**: Maintains streaming even during tool execution with recursive handling
 - **Visual boundaries**: Uses `=` (40 chars) for user turns and `-` (40 chars) for assistant/tool turns
 - **Continuous streaming**: Response continues to stream even after tool calls complete
+
+**Key Architecture**: The streaming system handles tool use by storing conversation state in `self.messages`, executing tools synchronously, then continuing to stream the follow-up response. This maintains the conversational flow while providing immediate visual feedback.
 
 ### Tool System
 Tools are automatically loaded from the `src/tools/` directory. Each tool file must define:
@@ -146,6 +150,8 @@ Tools are automatically loaded from the `src/tools/` directory. Each tool file m
 - **`write_file`**: Writes content to files within the sandbox directory (supports overwrite and append modes)
 - **`list_files`**: Recursively lists all files in a directory within the sandbox
 
+**Tool Discovery**: Tools are auto-loaded from `src/tools/` using dynamic imports. Each tool must export `TOOL_METADATA` with `name`, `description`, `handler`, and `input_schema`.
+
 #### Sandbox Directory
 The `sandbox/` directory serves as a secure working area for the AI assistant:
 - Mounted as `/app/sandbox` in the Docker container
@@ -155,6 +161,8 @@ The `sandbox/` directory serves as a secure working area for the AI assistant:
 - Security-restricted to prevent access outside the sandbox
 - Supports automatic directory creation for nested paths
 - File operations include read, write (overwrite), and append modes
+
+**Security Model**: All file tools validate paths to ensure they remain within the sandbox boundary, preventing directory traversal attacks.
 
 #### Tool Usage Examples
 ```bash
@@ -199,6 +207,10 @@ The application uses `config.json` for settings including model selection and fe
 }
 ```
 
+#### CLI Options
+- `--config`: Path to configuration file (default: `config.json`)
+- `--model`: Override the model from config
+
 The system prompt is optimized for coding assistance with emphasis on:
 - Using the sandbox environment for file operations
 - Providing practical programming solutions
@@ -220,12 +232,31 @@ The project uses mypy for static type checking with configuration in `mypy.ini`:
 - `mypy`: Static type checking
 - `pre-commit`: Git hooks for code quality
 
-### Recent Updates
-- **Streaming Output**: Implemented real-time response streaming using Anthropic's streaming API
-- **Visual Boundaries**: Added clear delineation between user inputs, assistant responses, and tool calls
-- **Tool Streaming**: Maintained continuous streaming even when tools are invoked
-- **Enhanced UX**: Immediate feedback as Claude generates responses, improving perceived performance
-- **Robust Input Handling**: Added EOFError handling to gracefully exit when input is piped or redirected
+### Creating Custom Tools
+To add new functionality, create a Python file in `src/tools/` with this structure:
+
+```python
+from typing import Any
+
+def my_tool(params: dict[str, Any]) -> str:
+    """Your tool implementation."""
+    return "Tool result"
+
+TOOL_METADATA = {
+    "name": "my_tool",
+    "description": "Description of what the tool does",
+    "handler": my_tool,
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "param1": {"type": "string", "description": "Parameter description"}
+        },
+        "required": ["param1"]
+    }
+}
+```
+
+The `ToolRegistry` class automatically discovers and loads tools using `importlib`, making them available immediately without manual registration.
 
 ### Testing Structure
 Tests use pytest with comprehensive API safety measures:
@@ -241,6 +272,13 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) provides:
 - Code quality validation (ruff linting/formatting, mypy type checking)
 - API safety verification (blocks real API keys)
 - Pre-commit hook validation including pytest
+- Docker image building and security scanning with Trivy
+- Docker Compose validation
+
+**Critical CI Notes**:
+- Use `mypy src/` (not `mypy .`) to avoid module path conflicts
+- Use `docker compose` commands for compatibility
+- All tests are automatically mocked - no real API calls
 
 ### API Safety Measures
 The codebase includes multiple layers of protection against accidental API charges:
