@@ -111,7 +111,7 @@ jobs:
     - name: Validate docker-compose.yml
       run: |
         echo "Validating docker-compose.yml..."
-        docker-compose config --quiet
+        docker compose config --quiet
         echo "✓ docker-compose.yml is valid"
 
     - name: Test Docker container with mock API
