@@ -5,6 +5,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -15,18 +16,19 @@ from tools import ToolRegistry
 class ClaudeCLI:
     """Main CLI application for Claude chat."""
 
-    def __init__(self, config_path: str = "config.json"):
+    def __init__(self, config_path: str = "config.json") -> None:
         load_dotenv()
         self.config = self._load_config(config_path)
         self.api_key = self._get_api_key()
-        self.chat = None
-        self.tool_registry = None
+        self.chat: ClaudeChat | None = None
+        self.tool_registry: ToolRegistry | None = None
 
-    def _load_config(self, config_path: str) -> dict:
+    def _load_config(self, config_path: str) -> dict[str, Any]:
         """Load configuration from JSON file."""
         if Path(config_path).exists():
-            with open(config_path) as f:
-                return json.load(f)
+            with open(config_path, encoding="utf-8") as f:
+                config: dict[str, Any] = json.load(f)
+                return config
         return {
             "model": "claude-3-haiku-20240307",
             "max_tokens": 1000,
@@ -43,7 +45,7 @@ class ClaudeCLI:
             sys.exit(1)
         return api_key
 
-    def _setup_chat(self):
+    def _setup_chat(self) -> None:
         """Initialize chat with configuration."""
         # Setup tools
         self.tool_registry = ToolRegistry()
@@ -51,7 +53,7 @@ class ClaudeCLI:
         # Create chat instance with updated claude_chat
         self.chat = ClaudeChat(
             api_key=self.api_key,
-            model=self.config.get("model"),
+            model=self.config.get("model", "claude-3-haiku-20240307"),
             system_prompt=self.config.get("system_prompt"),
             debug=self.config.get("debug", True),
         )
@@ -60,13 +62,18 @@ class ClaudeCLI:
         if self.tool_registry:
             self.chat.tools = self.tool_registry.get_tool_definitions()
             # Override the execute method
-            self.chat._execute_tool = lambda name, input: self.tool_registry.execute(
-                name, input
-            )
+            if self.tool_registry:  # Additional check for mypy
 
-    def run_repl(self):
+                def execute_wrapper(tool_name: str, tool_input: dict[str, Any]) -> str:
+                    assert self.tool_registry is not None  # for mypy
+                    return self.tool_registry.execute(tool_name, tool_input)
+
+                self.chat._execute_tool = execute_wrapper  # type: ignore[method-assign]
+
+    def run_repl(self) -> None:
         """Run interactive REPL mode."""
         self._setup_chat()
+        assert self.chat is not None
 
         print("Claude REPL - Interactive Mode")
         print("Type 'exit', 'quit', or 'q' to exit")
@@ -108,9 +115,10 @@ class ClaudeCLI:
 
                     traceback.print_exc()
 
-    def run_single(self, message: str):
+    def run_single(self, message: str) -> None:
         """Run a single message and exit."""
         self._setup_chat()
+        assert self.chat is not None
 
         try:
             response, tool_info = self.chat.send_message(message)
@@ -122,7 +130,7 @@ class ClaudeCLI:
             sys.exit(1)
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Claude CLI - Chat with Claude AI")
     parser.add_argument(

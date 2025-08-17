@@ -2,6 +2,8 @@
 
 from unittest.mock import Mock, patch
 
+from anthropic.types import TextBlock
+
 from chat import ClaudeChat
 
 
@@ -101,7 +103,10 @@ class TestClaudeChat:
 
         # Mock the API response
         mock_response = Mock()
-        mock_response.content = [Mock(text="Hello! I'm Claude.")]
+        mock_content = Mock(spec=TextBlock)
+        mock_content.text = "Hello! I'm Claude."
+        mock_content.type = "text"
+        mock_response.content = [mock_content]
         mock_response.stop_reason = "end_turn"
         self.mock_client.messages.create.return_value = mock_response
 

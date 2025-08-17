@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from anthropic import Anthropic
+from anthropic.types import Message, TextBlock
 
 
 class ClaudeChat:
@@ -15,7 +16,7 @@ class ClaudeChat:
         model: str = "claude-3-haiku-20240307",
         system_prompt: str | None = None,
         debug: bool = True,
-    ):
+    ) -> None:
         self.client = Anthropic(api_key=api_key)
         self.model = model
         self.system_prompt = (
@@ -43,7 +44,7 @@ class ClaudeChat:
         else:
             return f"Error: Unknown tool '{tool_name}'"
 
-    def _handle_tool_use(self, response):
+    def _handle_tool_use(self, response: Message) -> tuple[str, str | None, str | None]:
         """Handle tool use in Claude's response."""
         tool_use = None
         assistant_content = []
@@ -61,14 +62,15 @@ class ClaudeChat:
                         "type": "tool_use",
                         "id": tool_use.id,
                         "name": tool_use.name,
-                        "input": tool_use.input,
+                        "input": dict(tool_use.input) if tool_use.input else {},  # type: ignore
                     }
                 )
 
         self.messages.append({"role": "assistant", "content": assistant_content})
 
         if tool_use:
-            result = self._execute_tool(tool_use.name, tool_use.input)
+            tool_input = dict(tool_use.input) if tool_use.input else {}  # type: ignore
+            result = self._execute_tool(tool_use.name, tool_input)
             tool_display = f"[Tool: {tool_use.name} -> {result}]"
 
             self.messages.append(
@@ -88,11 +90,13 @@ class ClaudeChat:
                 model=self.model,
                 max_tokens=1000,
                 system=self.system_prompt,
-                messages=self.messages,
-                tools=self.tools,
+                messages=self.messages,  # type: ignore
+                tools=self.tools,  # type: ignore
             )
 
-            follow_up_text = follow_up.content[0].text if follow_up.content else ""
+            follow_up_text = ""
+            if follow_up.content and isinstance(follow_up.content[0], TextBlock):
+                follow_up_text = follow_up.content[0].text
             self.messages.append({"role": "assistant", "content": follow_up_text})
 
             return output_text, tool_display, follow_up_text
@@ -107,22 +111,25 @@ class ClaudeChat:
             model=self.model,
             max_tokens=1000,
             system=self.system_prompt,
-            messages=self.messages,
-            tools=self.tools,
+            messages=self.messages,  # type: ignore
+            tools=self.tools,  # type: ignore
         )
 
         if response.stop_reason == "tool_use":
             text, tool_display, follow_up = self._handle_tool_use(response)
-            return (
-                text + "\n" + tool_display + "\n" + follow_up
-                if text
-                else tool_display + "\n" + follow_up
-            ), tool_display
+            combined_text = ""
+            if text and tool_display and follow_up:
+                combined_text = text + "\n" + tool_display + "\n" + follow_up
+            elif tool_display and follow_up:
+                combined_text = tool_display + "\n" + follow_up
+            return combined_text, tool_display
         else:
-            assistant_message = response.content[0].text
+            assistant_message = ""
+            if response.content and isinstance(response.content[0], TextBlock):
+                assistant_message = response.content[0].text
             self.messages.append({"role": "assistant", "content": assistant_message})
             return assistant_message, None
 
-    def reset_conversation(self):
+    def reset_conversation(self) -> None:
         """Clear the conversation history."""
         self.messages = []

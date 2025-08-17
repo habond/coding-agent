@@ -1,6 +1,7 @@
 """Tool registry for managing available tools."""
 
 import importlib
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -8,17 +9,17 @@ from typing import Any
 class ToolRegistry:
     """Registry for managing available tools."""
 
-    def __init__(self, auto_load: bool = True):
+    def __init__(self, auto_load: bool = True) -> None:
         """Initialize the tool registry.
 
         Args:
             auto_load: Whether to automatically load all tools from the tools directory
         """
-        self.tools = {}
+        self.tools: dict[str, dict[str, Any]] = {}
         if auto_load:
             self._auto_load_tools()
 
-    def _auto_load_tools(self):
+    def _auto_load_tools(self) -> None:
         """Automatically load all tools from the tools directory."""
         tools_dir = Path(__file__).parent
 
@@ -45,8 +46,12 @@ class ToolRegistry:
                 print(f"Warning: Could not load tool from {tool_file}: {e}")
 
     def register_tool(
-        self, name: str, description: str, handler, input_schema: dict[str, Any]
-    ):
+        self,
+        name: str,
+        description: str,
+        handler: Callable[[dict[str, Any]], str],
+        input_schema: dict[str, Any],
+    ) -> None:
         """Register a new tool.
 
         Args:
@@ -77,7 +82,7 @@ class ToolRegistry:
             for tool in self.tools.values()
         ]
 
-    def execute(self, tool_name: str, tool_input: dict[str, Any] = None) -> str:
+    def execute(self, tool_name: str, tool_input: dict[str, Any] | None = None) -> str:
         """Execute a tool by name.
 
         Args:
@@ -92,7 +97,8 @@ class ToolRegistry:
 
         try:
             handler = self.tools[tool_name]["handler"]
-            return handler(tool_input or {})
+            result = handler(tool_input or {})
+            return str(result)  # Ensure we return a string
         except Exception as e:
             return f"Error executing {tool_name}: {str(e)}"
 

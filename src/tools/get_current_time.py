@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 
 
-def get_current_time(params: dict[str, Any] = None) -> str:
+def get_current_time(params: dict[str, Any] | None = None) -> str:
     """Get the current date and time.
 
     Args:

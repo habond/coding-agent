@@ -3,6 +3,7 @@
 [![CI](https://github.com/habond/coding-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/habond/coding-agent/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue)](http://mypy-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A Python command-line interface for interacting with Anthropic's Claude AI. Features both interactive REPL mode and single-message execution with an extensible tool system.
@@ -16,6 +17,7 @@ A Python command-line interface for interacting with Anthropic's Claude AI. Feat
 - 🧪 **Comprehensive test suite** with API safety measures
 - 🚀 **CI/CD ready** with GitHub Actions automation
 - 🔒 **Cost-safe testing** with automatic API mocking
+- 🏷️ **Type-safe code** with mypy static type checking
 
 ## Quick Start
 
@@ -98,7 +100,9 @@ The tool system allows extending Claude's capabilities. Tools are automatically 
 Create a new Python file in `src/tools/` with the following structure:
 
 ```python
-def my_tool(params: dict) -> str:
+from typing import Any
+
+def my_tool(params: dict[str, Any]) -> str:
     """Your tool implementation."""
     return "Tool result"
 
@@ -146,7 +150,10 @@ ruff check
 # Format code
 ruff format
 
-# Run pre-commit hooks
+# Type check code
+mypy src/
+
+# Run pre-commit hooks (includes ruff, mypy, and tests)
 pre-commit run --all-files
 ```
 
@@ -167,6 +174,7 @@ pre-commit run --all-files
 ├── config.json         # Application configuration
 ├── requirements.txt    # Python dependencies
 ├── pytest.ini         # Test configuration
+├── mypy.ini           # Type checking configuration
 ├── .pre-commit-config.yaml  # Code quality hooks
 └── run.sh             # Convenience script
 ```
@@ -201,25 +209,7 @@ The project includes comprehensive safety measures to prevent accidental API cha
 The project uses GitHub Actions for continuous integration:
 
 - **Multi-Python testing** (3.11, 3.12)
-- **Code quality checks** (ruff linting, formatting)
-- **Automated testing** with API safety guarantees
-- **Pre-commit validation** ensuring code standards
-
-### API Safety
-
-The project includes comprehensive safety measures to prevent accidental API charges:
-
-- **Automatic API mocking** in all tests via `tests/conftest.py`
-- **CI/CD safety checks** that block real API keys
-- **Test environment isolation** with safe dummy keys
-- **Pre-commit hooks** that validate code quality without API calls
-
-## CI/CD
-
-The project uses GitHub Actions for continuous integration:
-
-- **Multi-Python testing** (3.11, 3.12)
-- **Code quality checks** (ruff linting, formatting)
+- **Code quality checks** (ruff linting, formatting, mypy type checking)
 - **Automated testing** with API safety guarantees
 - **Pre-commit validation** ensuring code standards
 

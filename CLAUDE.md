@@ -44,7 +44,10 @@ ruff check
 # Format code
 ruff format
 
-# Run pre-commit hooks
+# Type check code
+mypy src/
+
+# Run pre-commit hooks (includes ruff, mypy, and pytest)
 pre-commit run --all-files
 ```
 
@@ -59,17 +62,25 @@ pre-commit run --all-files
 
 ### Tool System
 Tools are automatically loaded from the `src/tools/` directory. Each tool file must define:
-- A handler function that takes `params: dict[str, Any]` and returns a string
+- A handler function that takes `params: dict[str, Any]` and returns a string (with proper type annotations)
 - `TOOL_METADATA` dictionary with `name`, `description`, `handler`, and `input_schema`
 
 ### Configuration
 The application uses `config.json` for settings including model selection and feature flags. Environment variables are loaded from `.env` file.
+
+### Type Checking
+The project uses mypy for static type checking with configuration in `mypy.ini`:
+- Comprehensive type annotations throughout the codebase
+- Strict type checking for better code quality and developer experience
+- Type-safe handling of Anthropic API responses
+- Integrated into pre-commit hooks and CI/CD pipeline
 
 ### Key Dependencies
 - `anthropic`: Claude API client
 - `python-dotenv`: Environment variable management
 - `pytest`: Testing framework
 - `ruff`: Code linting and formatting
+- `mypy`: Static type checking
 - `pre-commit`: Git hooks for code quality
 
 ### Testing Structure
@@ -83,7 +94,7 @@ Tests use pytest with comprehensive API safety measures:
 ### CI/CD Pipeline
 GitHub Actions workflow (`.github/workflows/ci.yml`) provides:
 - Multi-Python version testing (3.11, 3.12)
-- Code quality validation (ruff linting/formatting)
+- Code quality validation (ruff linting/formatting, mypy type checking)
 - API safety verification (blocks real API keys)
 - Pre-commit hook validation including pytest
 

@@ -42,6 +42,10 @@ jobs:
         ruff check .
         ruff format --check .
 
+    - name: Type check with mypy
+      run: |
+        mypy .
+
     - name: Test with pytest
       run: |
         pytest tests/ -v --tb=short
