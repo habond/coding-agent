@@ -12,7 +12,6 @@ A Python command-line interface for interacting with Anthropic's Claude AI. Feat
 - 🔄 **Interactive REPL mode** for ongoing conversations
 - ⚡ **Single-message mode** for quick queries
 - 🛠️ **Extensible tool system** with automatic discovery
-- 📝 **Debug logging** with conversation history
 - ⚙️ **Configurable settings** via JSON and environment variables
 - 🧪 **Comprehensive test suite** with API safety measures
 - 🚀 **CI/CD ready** with GitHub Actions automation
@@ -69,8 +68,6 @@ python src/main.py --help
 Options:
 - `--config`: Path to configuration file (default: `config.json`)
 - `--model`: Override the model from config
-- `--debug`: Enable debug mode
-- `--no-debug`: Disable debug mode
 
 ## Configuration
 
@@ -81,11 +78,8 @@ The application can be configured via `config.json`:
   "model": "claude-3-haiku-20240307",
   "max_tokens": 1000,
   "system_prompt": "You are a helpful AI assistant. Be concise and clear in your responses.",
-  "debug": true,
-  "debug_file": "logs/debug.json",
   "features": {
-    "tools_enabled": true,
-    "save_conversations": false
+    "tools_enabled": true
   }
 }
 ```
@@ -193,9 +187,23 @@ Tools are discovered automatically using Python's `importlib`. Each tool defines
 - Validate input parameters
 - Execute tools safely with error handling
 
-### Debug Logging
+### API Safety
 
-When debug mode is enabled, all conversation history is logged to `logs/debug.json` for troubleshooting and development.
+The project includes comprehensive safety measures to prevent accidental API charges:
+
+- **Automatic API mocking** in all tests via `tests/conftest.py`
+- **CI/CD safety checks** that block real API keys
+- **Test environment isolation** with safe dummy keys
+- **Pre-commit hooks** that validate code quality without API calls
+
+## CI/CD
+
+The project uses GitHub Actions for continuous integration:
+
+- **Multi-Python testing** (3.11, 3.12)
+- **Code quality checks** (ruff linting, formatting)
+- **Automated testing** with API safety guarantees
+- **Pre-commit validation** ensuring code standards
 
 ### API Safety
 

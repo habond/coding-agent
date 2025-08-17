@@ -47,38 +47,6 @@ class TestClaudeChat:
         assert chat.debug is True
 
     @patch("chat.Anthropic")
-    @patch("chat.Path")
-    def test_write_debug_log(self, mock_path, mock_anthropic):
-        """Test debug logging functionality."""
-        mock_anthropic.return_value = self.mock_client
-        mock_path_instance = Mock()
-        mock_path.return_value = mock_path_instance
-
-        chat = ClaudeChat(api_key=self.api_key, debug=True)
-        chat.messages = [{"role": "user", "content": "test"}]
-
-        with patch("builtins.open", create=True) as mock_open:
-            mock_file = Mock()
-            mock_open.return_value.__enter__.return_value = mock_file
-
-            chat._write_debug_log("test_debug.json")
-
-            mock_path.assert_called_once_with("test_debug.json")
-            mock_path_instance.parent.mkdir.assert_called_once_with(exist_ok=True)
-            mock_open.assert_called_once_with("test_debug.json", "w")
-
-    @patch("chat.Anthropic")
-    def test_write_debug_log_disabled(self, mock_anthropic):
-        """Test that debug logging is skipped when disabled."""
-        mock_anthropic.return_value = self.mock_client
-
-        chat = ClaudeChat(api_key=self.api_key, debug=False)
-
-        with patch("builtins.open", create=True) as mock_open:
-            chat._write_debug_log()
-            mock_open.assert_not_called()
-
-    @patch("chat.Anthropic")
     def test_reset_conversation(self, mock_anthropic):
         """Test conversation reset functionality."""
         mock_anthropic.return_value = self.mock_client

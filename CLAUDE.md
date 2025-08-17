@@ -63,7 +63,7 @@ Tools are automatically loaded from the `src/tools/` directory. Each tool file m
 - `TOOL_METADATA` dictionary with `name`, `description`, `handler`, and `input_schema`
 
 ### Configuration
-The application uses `config.json` for settings including model selection, debug mode, and feature flags. Environment variables are loaded from `.env` file.
+The application uses `config.json` for settings including model selection and feature flags. Environment variables are loaded from `.env` file.
 
 ### Key Dependencies
 - `anthropic`: Claude API client

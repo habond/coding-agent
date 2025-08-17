@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-import json
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 from anthropic import Anthropic
@@ -45,16 +43,6 @@ class ClaudeChat:
         else:
             return f"Error: Unknown tool '{tool_name}'"
 
-    def _write_debug_log(self, filename: str = "logs/debug.json"):
-        """Write conversation history to debug file."""
-        if self.debug:
-            # Create logs directory if it doesn't exist
-            log_path = Path(filename)
-            log_path.parent.mkdir(exist_ok=True)
-
-            with open(filename, "w") as f:
-                json.dump(self.messages, f, indent=2)
-
     def _handle_tool_use(self, response):
         """Handle tool use in Claude's response."""
         tool_use = None
@@ -78,7 +66,6 @@ class ClaudeChat:
                 )
 
         self.messages.append({"role": "assistant", "content": assistant_content})
-        self._write_debug_log()
 
         if tool_use:
             result = self._execute_tool(tool_use.name, tool_use.input)
@@ -96,7 +83,6 @@ class ClaudeChat:
                     ],
                 }
             )
-            self._write_debug_log()
 
             follow_up = self.client.messages.create(
                 model=self.model,
@@ -108,7 +94,6 @@ class ClaudeChat:
 
             follow_up_text = follow_up.content[0].text if follow_up.content else ""
             self.messages.append({"role": "assistant", "content": follow_up_text})
-            self._write_debug_log()
 
             return output_text, tool_display, follow_up_text
 
@@ -117,7 +102,6 @@ class ClaudeChat:
     def send_message(self, user_input: str) -> tuple[str, str | None]:
         """Send a message to Claude and get the response."""
         self.messages.append({"role": "user", "content": user_input})
-        self._write_debug_log()
 
         response = self.client.messages.create(
             model=self.model,
@@ -137,10 +121,8 @@ class ClaudeChat:
         else:
             assistant_message = response.content[0].text
             self.messages.append({"role": "assistant", "content": assistant_message})
-            self._write_debug_log()
             return assistant_message, None
 
     def reset_conversation(self):
         """Clear the conversation history."""
         self.messages = []
-        self._write_debug_log()
