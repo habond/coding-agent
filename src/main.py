@@ -72,7 +72,8 @@ class ClaudeCLI:
 
         while True:
             try:
-                user_input = input("\nYou: ").strip()
+                print("\n" + "=" * 40)
+                user_input = input("You: ").strip()
 
                 if user_input.lower() in ["exit", "quit", "q"]:
                     print("Goodbye!")
@@ -86,14 +87,25 @@ class ClaudeCLI:
                 if not user_input:
                     continue
 
-                response, tool_info = self.chat.send_message(user_input)
+                print("-" * 40)
+                print("Claude: ", end="", flush=True)
 
-                if tool_info:
-                    print(f"\n{tool_info}")
-                print(f"\nClaude: {response}")
+                # Stream the response
+                for (
+                    text_chunk,
+                    _tool_info,
+                    _is_complete,
+                ) in self.chat.send_message_stream(user_input):
+                    if text_chunk:
+                        print(text_chunk, end="", flush=True)
+
+                print()  # New line after response
 
             except KeyboardInterrupt:
                 print("\n\nGoodbye!")
+                break
+            except EOFError:
+                print("\nGoodbye!")
                 break
             except Exception as e:
                 print(f"\nError: {e}")
@@ -107,10 +119,13 @@ class ClaudeCLI:
         assert self.chat is not None
 
         try:
-            response, tool_info = self.chat.send_message(message)
-            if tool_info:
-                print(tool_info)
-            print(response)
+            # Stream the response
+            for text_chunk, _tool_info, _is_complete in self.chat.send_message_stream(
+                message
+            ):
+                if text_chunk:
+                    print(text_chunk, end="", flush=True)
+            print()  # New line after response
         except Exception as e:
             print(f"Error: {e}")
             sys.exit(1)

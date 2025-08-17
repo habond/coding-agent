@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-This is a Python CLI application for interacting with Claude AI through the Anthropic API. The application supports both interactive REPL mode and single-message execution, with an extensible tool system for adding custom capabilities.
+This is a Python CLI application for interacting with Claude AI through the Anthropic API. The application supports both interactive REPL mode and single-message execution with real-time streaming output, providing immediate feedback as responses are generated. Features an extensible tool system for adding custom capabilities and clear visual delineation between conversation turns.
 
 ## Development Commands
 
@@ -118,10 +118,17 @@ docker-compose run --rm claude-cli mypy src/
 
 ### Core Components
 
-- **`src/main.py`**: Entry point with CLI argument parsing and application setup
-- **`src/chat.py`**: `ClaudeChat` class that manages API communication, conversation state, and tool execution
+- **`src/main.py`**: Entry point with CLI argument parsing, application setup, and conversation boundary display
+- **`src/chat.py`**: `ClaudeChat` class that manages API communication, conversation state, streaming responses, and tool execution
 - **`src/tools/registry.py`**: `ToolRegistry` class for dynamic tool loading and management
 - **`src/tools/`**: Individual tool implementations with `TOOL_METADATA` for auto-registration
+
+### Streaming Implementation
+The application uses Anthropic's streaming API for real-time output:
+- **`send_message_stream()`**: Generator method that yields text chunks as they arrive
+- **`_handle_tool_use_stream()`**: Maintains streaming even during tool execution
+- **Visual boundaries**: Uses `=` (40 chars) for user turns and `-` (40 chars) for assistant/tool turns
+- **Continuous streaming**: Response continues to stream even after tool calls complete
 
 ### Tool System
 Tools are automatically loaded from the `src/tools/` directory. Each tool file must define:
@@ -145,7 +152,7 @@ The `sandbox/` directory serves as a secure working area for the AI assistant:
 
 #### Tool Usage Examples
 ```bash
-# Read a file
+# Read a file (response streams in real-time)
 ./run.sh "Read the file /app/sandbox/example.txt"
 
 # Write a new file (overwrites if exists)
@@ -156,6 +163,21 @@ The `sandbox/` directory serves as a secure working area for the AI assistant:
 
 # Create a file in a subdirectory (auto-creates directories)
 ./run.sh "Create a Python script at /app/sandbox/scripts/test.py"
+```
+
+#### Interactive Mode Display
+In REPL mode, the conversation flow is clearly delineated:
+```
+========================================
+You: [user input here]
+----------------------------------------
+Claude: [streaming response begins here...]
+----------------------------------------
+[Tool: tool_name -> result]
+----------------------------------------
+[Claude's follow-up response continues streaming...]
+========================================
+You: [next user input]
 ```
 
 
@@ -185,12 +207,19 @@ The project uses mypy for static type checking with configuration in `mypy.ini`:
 - Integrated into pre-commit hooks and CI/CD pipeline
 
 ### Key Dependencies
-- `anthropic`: Claude API client
+- `anthropic`: Claude API client (with streaming support)
 - `python-dotenv`: Environment variable management
 - `pytest`: Testing framework
 - `ruff`: Code linting and formatting
 - `mypy`: Static type checking
 - `pre-commit`: Git hooks for code quality
+
+### Recent Updates
+- **Streaming Output**: Implemented real-time response streaming using Anthropic's streaming API
+- **Visual Boundaries**: Added clear delineation between user inputs, assistant responses, and tool calls
+- **Tool Streaming**: Maintained continuous streaming even when tools are invoked
+- **Enhanced UX**: Immediate feedback as Claude generates responses, improving perceived performance
+- **Robust Input Handling**: Added EOFError handling to gracefully exit when input is piped or redirected
 
 ### Testing Structure
 Tests use pytest with comprehensive API safety measures:

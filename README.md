@@ -12,6 +12,7 @@ A Python command-line interface for interacting with Anthropic's Claude AI. Feat
 
 - 🔄 **Interactive REPL mode** for ongoing conversations
 - ⚡ **Single-message mode** for quick queries
+- 🌊 **Real-time streaming output** for immediate response feedback
 - 🛠️ **Extensible tool system** with automatic discovery
 - 📁 **Secure sandbox** for file operations (Docker isolated)
 - 🐳 **Docker support** for secure, containerized execution
@@ -20,6 +21,7 @@ A Python command-line interface for interacting with Anthropic's Claude AI. Feat
 - 🚀 **CI/CD ready** with GitHub Actions automation
 - 🔒 **Cost-safe testing** with automatic API mocking
 - 🏷️ **Type-safe code** with mypy static type checking
+- 📊 **Clear conversation boundaries** with visual delimiters
 
 ## Quick Start
 
@@ -63,16 +65,22 @@ No additional setup required! Docker containers are built automatically.
 #### Docker Mode (Recommended - Secure Sandboxed Environment)
 
 ```bash
-# Interactive REPL mode
+# Interactive REPL mode with streaming output
 ./run.sh
 
-# Single message mode
+# Single message mode with streaming output
 ./run.sh "What is the current time?"
 
 # With docker-compose directly
 docker-compose run --rm claude-cli
 docker-compose run --rm claude-cli python src/main.py "Your message"
 ```
+
+**Interactive Mode Features:**
+- Real-time streaming responses as Claude generates them
+- Visual separators between user inputs, Claude responses, and tool calls
+- Clear delineation with `========` for user turns and `--------` for assistant/tool turns
+- Graceful handling of piped input and EOF conditions
 
 #### Local Mode (Development)
 
@@ -218,8 +226,15 @@ pre-commit run --all-files
 ### Core Components
 
 - **ClaudeCLI**: Main application class handling CLI arguments and modes
-- **ClaudeChat**: Manages API communication and conversation state
+- **ClaudeChat**: Manages API communication, conversation state, and streaming responses
 - **ToolRegistry**: Dynamically loads and executes tools
+
+### Streaming Architecture
+
+The application uses Anthropic's streaming API to provide real-time response output:
+- **Immediate feedback**: Text appears as it's generated, not after completion
+- **Tool integration**: Seamless streaming continues even when tools are invoked
+- **Visual clarity**: Clear boundaries between different types of interactions
 
 ### Sandbox Environment
 

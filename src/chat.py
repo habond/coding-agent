@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from collections.abc import Generator
 from typing import TYPE_CHECKING, Any, cast
 
 from anthropic import Anthropic
@@ -171,6 +172,132 @@ class ClaudeChat:
                 MessageParam(role="assistant", content=assistant_message)
             )
             return assistant_message, None
+
+    def _handle_tool_use_stream(
+        self, response: Message
+    ) -> Generator[tuple[str, str | None, bool], None, None]:
+        """Handle tool use in Claude's response with streaming."""
+        tool_use = None
+        assistant_content: list[TextBlockParam | ToolUseBlockParam] = []
+        output_text = ""
+
+        for content in response.content:
+            if content.type == "text":
+                assistant_content.append(TextBlockParam(type="text", text=content.text))
+                if content.text:
+                    output_text += content.text
+            elif content.type == "tool_use":
+                tool_use = content
+                assistant_content.append(
+                    ToolUseBlockParam(
+                        type="tool_use",
+                        id=tool_use.id,
+                        name=tool_use.name,
+                        input=cast(dict[str, Any], tool_use.input)
+                        if tool_use.input
+                        else {},
+                    )
+                )
+
+        self.messages.append(MessageParam(role="assistant", content=assistant_content))
+
+        if tool_use:
+            tool_input = cast(dict[str, Any], tool_use.input) if tool_use.input else {}
+            result = self._execute_tool(tool_use.name, tool_input)
+            tool_display = f"[Tool: {tool_use.name} -> {result}]"
+            yield ("\n" + "-" * 40 + "\n" + tool_display, tool_display, False)
+
+            self.messages.append(
+                MessageParam(
+                    role="user",
+                    content=[
+                        ToolResultBlockParam(
+                            type="tool_result",
+                            tool_use_id=tool_use.id,
+                            content=result,
+                        )
+                    ],
+                )
+            )
+
+            # Stream the follow-up response
+            yield ("\n" + "-" * 40 + "\n", None, False)
+            with self.client.messages.stream(
+                model=self.model,
+                max_tokens=1000,
+                system=self.system_prompt,
+                messages=self.messages,
+                tools=self.tools,
+            ) as follow_stream:
+                follow_accumulated = ""
+
+                for event in follow_stream:
+                    if event.type == "content_block_delta":
+                        if hasattr(event.delta, "text"):
+                            text_chunk = event.delta.text
+                            follow_accumulated += text_chunk
+                            yield (text_chunk, None, False)
+
+                follow_message = follow_stream.get_final_message()
+
+                # Check if follow-up also has tool use
+                if follow_message.stop_reason == "tool_use":
+                    # Recursively handle additional tool use with streaming
+                    yield from self._handle_tool_use_stream(follow_message)
+                else:
+                    # Store the follow-up message
+                    self.messages.append(
+                        MessageParam(role="assistant", content=follow_accumulated)
+                    )
+                    yield ("", None, True)
+        else:
+            yield ("", None, True)
+
+    def send_message_stream(
+        self, user_input: str
+    ) -> Generator[tuple[str, str | None, bool], None, None]:
+        """Send a message and stream the response.
+
+        Yields tuples of (text_chunk, tool_info, is_complete)
+        """
+        self.messages.append(MessageParam(role="user", content=user_input))
+
+        with self.client.messages.stream(
+            model=self.model,
+            max_tokens=1000,
+            system=self.system_prompt,
+            messages=self.messages,
+            tools=self.tools,
+        ) as stream:
+            accumulated_text = ""
+            tool_calls = []
+
+            for event in stream:
+                if event.type == "content_block_delta":
+                    if hasattr(event.delta, "text"):
+                        text_chunk = event.delta.text
+                        accumulated_text += text_chunk
+                        yield (text_chunk, None, False)
+                elif event.type == "content_block_stop":
+                    if (
+                        hasattr(event, "content_block")
+                        and event.content_block.type == "tool_use"
+                    ):
+                        tool_calls.append(event.content_block)
+
+            # Get the final message from stream
+            final_message = stream.get_final_message()
+
+            # Handle tool use if present
+            if final_message.stop_reason == "tool_use":
+                # Use streaming tool handler
+                yield from self._handle_tool_use_stream(final_message)
+            else:
+                # Store the final assistant message
+                self.messages.append(
+                    MessageParam(role="assistant", content=accumulated_text)
+                )
+                yield ("", None, True)
 
     def reset_conversation(self) -> None:
         """Clear the conversation history."""
