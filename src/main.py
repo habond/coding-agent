@@ -44,11 +44,10 @@ class ClaudeCLI:
             sys.exit(1)
         return api_key
 
-    def _setup_chat(self, tool_free: bool = False) -> None:
+    def _setup_chat(self) -> None:
         """Initialize chat with configuration."""
-        # Setup tools unless tool_free mode is enabled
-        if not tool_free:
-            self.tool_registry = ToolRegistry()
+        # Setup tools
+        self.tool_registry = ToolRegistry()
 
         # Create chat instance with tool registry
         self.chat = ClaudeChat(
@@ -56,20 +55,17 @@ class ClaudeCLI:
             model=self.config.get("model", "claude-3-haiku-20240307"),
             system_prompt=self.config.get("system_prompt"),
             tool_registry=self.tool_registry,
-            tool_free=tool_free,
         )
 
-    def run_repl(self, tool_free: bool = False) -> None:
+    def run_repl(self) -> None:
         """Run interactive REPL mode."""
-        self._setup_chat(tool_free=tool_free)
+        self._setup_chat()
         assert self.chat is not None
 
         print("Claude REPL - Interactive Mode")
         print("Type 'exit', 'quit', or 'q' to exit")
         print("Type 'reset' to clear conversation history")
-        if tool_free:
-            print("Tools disabled - using Claude's internal knowledge only")
-        elif self.tool_registry:
+        if self.tool_registry:
             tools_list = ", ".join(self.tool_registry.tools.keys())
             print(f"Tools available: {tools_list}")
         print("-" * 40)
@@ -105,9 +101,9 @@ class ClaudeCLI:
 
                 traceback.print_exc()
 
-    def run_single(self, message: str, tool_free: bool = False) -> None:
+    def run_single(self, message: str) -> None:
         """Run a single message and exit."""
-        self._setup_chat(tool_free=tool_free)
+        self._setup_chat()
         assert self.chat is not None
 
         try:
@@ -130,11 +126,6 @@ def main() -> None:
         "--config", default="config.json", help="Path to configuration file"
     )
     parser.add_argument("--model", help="Override model from config")
-    parser.add_argument(
-        "--no-tools",
-        action="store_true",
-        help="Disable tools and rely on Claude's internal knowledge",
-    )
 
     args = parser.parse_args()
 
@@ -145,9 +136,9 @@ def main() -> None:
         cli.config["model"] = args.model
 
     if args.message:
-        cli.run_single(args.message, tool_free=args.no_tools)
+        cli.run_single(args.message)
     else:
-        cli.run_repl(tool_free=args.no_tools)
+        cli.run_repl()
 
 
 if __name__ == "__main__":

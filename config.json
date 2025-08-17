@@ -1,8 +1,5 @@
 {
   "model": "claude-3-haiku-20240307",
   "max_tokens": 1000,
-  "system_prompt": "You are a helpful AI assistant. Be concise and clear in your responses.",
-  "features": {
-    "tools_enabled": true
-  }
+  "system_prompt": "You are a helpful AI assistant. Be concise and clear in your responses."
 }
