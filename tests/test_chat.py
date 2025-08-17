@@ -21,12 +21,11 @@ class TestClaudeChat:
         """Test that ClaudeChat initializes correctly."""
         mock_anthropic.return_value = self.mock_client
 
-        chat = ClaudeChat(api_key=self.api_key, debug=False)
+        chat = ClaudeChat(api_key=self.api_key)
 
         # ClaudeChat doesn't store api_key, it passes it to Anthropic client
         assert chat.client == self.mock_client
         assert chat.model == "claude-3-haiku-20240307"
-        assert chat.debug is False
         assert chat.messages == []
         mock_anthropic.assert_called_once_with(api_key=self.api_key)
 
@@ -42,19 +41,17 @@ class TestClaudeChat:
             api_key=self.api_key,
             model=custom_model,
             system_prompt=custom_prompt,
-            debug=True,
         )
 
         assert chat.model == custom_model
         assert chat.system_prompt == custom_prompt
-        assert chat.debug is True
 
     @patch("chat.Anthropic")
     def test_reset_conversation(self, mock_anthropic: Any) -> None:
         """Test conversation reset functionality."""
         mock_anthropic.return_value = self.mock_client
 
-        chat = ClaudeChat(api_key=self.api_key, debug=False)
+        chat = ClaudeChat(api_key=self.api_key)
         chat.messages = [{"role": "user", "content": "test"}]
 
         chat.reset_conversation()
@@ -66,7 +63,7 @@ class TestClaudeChat:
         """Test executing get_current_time tool."""
         mock_anthropic.return_value = self.mock_client
 
-        chat = ClaudeChat(api_key=self.api_key, debug=False)
+        chat = ClaudeChat(api_key=self.api_key)
         result = chat._execute_tool("get_current_time", {})
 
         assert isinstance(result, str)
@@ -77,7 +74,7 @@ class TestClaudeChat:
         """Test executing unknown tool."""
         mock_anthropic.return_value = self.mock_client
 
-        chat = ClaudeChat(api_key=self.api_key, debug=False)
+        chat = ClaudeChat(api_key=self.api_key)
         result = chat._execute_tool("unknown_tool", {})
 
         assert "Error: Unknown tool 'unknown_tool'" in result
@@ -87,7 +84,7 @@ class TestClaudeChat:
         """Test tool initialization."""
         mock_anthropic.return_value = self.mock_client
 
-        chat = ClaudeChat(api_key=self.api_key, debug=False)
+        chat = ClaudeChat(api_key=self.api_key)
         tools = chat._initialize_tools()
 
         assert isinstance(tools, list)
@@ -111,7 +108,7 @@ class TestClaudeChat:
         mock_response.stop_reason = "end_turn"
         self.mock_client.messages.create.return_value = mock_response
 
-        chat = ClaudeChat(api_key=self.api_key, debug=False)
+        chat = ClaudeChat(api_key=self.api_key)
         response, tool_info = chat.send_message("Hello")
 
         # Verify the API was called with mocked client
@@ -145,7 +142,7 @@ class TestClaudeChat:
 
         self.mock_client.messages.create.side_effect = [mock_response, mock_followup]
 
-        chat = ClaudeChat(api_key=self.api_key, debug=False)
+        chat = ClaudeChat(api_key=self.api_key)
         response, tool_info = chat.send_message("What time is it?")
 
         # Verify the API was called twice (initial + follow-up)
@@ -162,7 +159,7 @@ class TestClaudeChat:
         """Test ClaudeChat initializes correctly in tool-free mode."""
         mock_anthropic.return_value = self.mock_client
 
-        chat = ClaudeChat(api_key=self.api_key, tool_free=True, debug=False)
+        chat = ClaudeChat(api_key=self.api_key, tool_free=True)
 
         assert chat.tool_free is True
         assert chat.client == self.mock_client
@@ -183,7 +180,7 @@ class TestClaudeChat:
         mock_response.stop_reason = "end_turn"
         self.mock_client.messages.create.return_value = mock_response
 
-        chat = ClaudeChat(api_key=self.api_key, tool_free=True, debug=False)
+        chat = ClaudeChat(api_key=self.api_key, tool_free=True)
         response, tool_info = chat.send_message("What is 2+2?")
 
         # Verify the API was called without tools parameter
@@ -207,7 +204,7 @@ class TestClaudeChat:
         mock_response.stop_reason = "end_turn"
         self.mock_client.messages.create.return_value = mock_response
 
-        chat = ClaudeChat(api_key=self.api_key, tool_free=False, debug=False)
+        chat = ClaudeChat(api_key=self.api_key, tool_free=False)
         response, tool_info = chat.send_message("What is 2+2?")
 
         # Verify the API was called with tools parameter

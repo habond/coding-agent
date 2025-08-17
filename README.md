@@ -78,7 +78,6 @@ Options:
 - `--config`: Path to configuration file (default: `config.json`)
 - `--model`: Override the model from config
 - `--no-tools`: Disable tools and use Claude's internal knowledge only
-- `--debug` / `--no-debug`: Enable/disable debug mode
 
 ## Configuration
 
@@ -88,10 +87,7 @@ The application can be configured via `config.json`:
 {
   "model": "claude-3-haiku-20240307",
   "max_tokens": 1000,
-  "system_prompt": "You are a helpful AI assistant. Be concise and clear in your responses.",
-  "features": {
-    "tools_enabled": true
-  }
+  "system_prompt": "You are a helpful AI assistant. Be concise and clear in your responses."
 }
 ```
 

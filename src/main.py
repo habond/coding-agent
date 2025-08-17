@@ -33,7 +33,6 @@ class ClaudeCLI:
             "model": "claude-3-haiku-20240307",
             "max_tokens": 1000,
             "system_prompt": "You are a helpful AI assistant.",
-            "debug": True,
         }
 
     def _get_api_key(self) -> str:
@@ -56,7 +55,6 @@ class ClaudeCLI:
             api_key=self.api_key,
             model=self.config.get("model", "claude-3-haiku-20240307"),
             system_prompt=self.config.get("system_prompt"),
-            debug=self.config.get("debug", True),
             tool_registry=self.tool_registry,
             tool_free=tool_free,
         )
@@ -103,10 +101,9 @@ class ClaudeCLI:
                 break
             except Exception as e:
                 print(f"\nError: {e}")
-                if self.config.get("debug"):
-                    import traceback
+                import traceback
 
-                    traceback.print_exc()
+                traceback.print_exc()
 
     def run_single(self, message: str, tool_free: bool = False) -> None:
         """Run a single message and exit."""
@@ -133,8 +130,6 @@ def main() -> None:
         "--config", default="config.json", help="Path to configuration file"
     )
     parser.add_argument("--model", help="Override model from config")
-    parser.add_argument("--debug", action="store_true", help="Enable debug mode")
-    parser.add_argument("--no-debug", action="store_true", help="Disable debug mode")
     parser.add_argument(
         "--no-tools",
         action="store_true",
@@ -148,10 +143,6 @@ def main() -> None:
     # Override config with command-line arguments
     if args.model:
         cli.config["model"] = args.model
-    if args.debug:
-        cli.config["debug"] = True
-    if args.no_debug:
-        cli.config["debug"] = False
 
     if args.message:
         cli.run_single(args.message, tool_free=args.no_tools)

@@ -27,7 +27,6 @@ class ClaudeChat:
         api_key: str,
         model: str = "claude-3-haiku-20240307",
         system_prompt: str | None = None,
-        debug: bool = True,
         tool_registry: "ToolRegistry | None" = None,
         tool_free: bool = False,
     ) -> None:
@@ -38,7 +37,6 @@ class ClaudeChat:
             or "You are a helpful AI assistant. Be concise and clear in your responses."
         )
         self.messages: list[MessageParam] = []
-        self.debug = debug
         self.tool_registry = tool_registry
         self.tool_free = tool_free
         self.tools = self._initialize_tools()
