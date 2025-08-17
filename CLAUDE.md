@@ -87,18 +87,24 @@ docker-compose run --rm claude-cli pytest tests/test_chat.py
 
 ### Code Quality
 
-#### Local Code Quality
+#### Local Code Quality (Matches Pre-commit Hooks)
 ```bash
-# Check code style and lint
-ruff check
+# IMPORTANT: Run these exact commands to match pre-commit behavior
 
-# Format code
+# Fix trailing whitespace and end-of-file issues
+pre-commit run trailing-whitespace --all-files
+pre-commit run end-of-file-fixer --all-files
+
+# Lint and auto-fix code (same as pre-commit)
+ruff check --fix
+
+# Format code (same as pre-commit)
 ruff format
 
 # Type check code
 mypy src/
 
-# Run pre-commit hooks (includes ruff, mypy, and pytest)
+# Run all pre-commit hooks locally (recommended before committing)
 pre-commit run --all-files
 ```
 
@@ -252,3 +258,12 @@ The Docker setup provides additional security layers:
 - **No new privileges**: Security option prevents privilege escalation
 - **Minimal base image**: Python slim image reduces attack surface
 - **Environment isolation**: API keys and sensitive data isolated within container
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+
+
+      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.
