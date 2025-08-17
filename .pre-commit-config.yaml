@@ -20,8 +20,9 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: venv/bin/pytest
-        language: system
+        entry: pytest
+        language: python
         pass_filenames: false
         always_run: true
         args: [tests/]
+        additional_dependencies: [pytest==8.3.2, pytest-mock==3.14.0, anthropic, python-dotenv==1.0.1]
