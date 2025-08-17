@@ -1,0 +1,11 @@
+{
+  "model": "claude-3-haiku-20240307",
+  "max_tokens": 1000,
+  "system_prompt": "You are a helpful AI assistant. Be concise and clear in your responses.",
+  "debug": true,
+  "debug_file": "logs/debug.json",
+  "features": {
+    "tools_enabled": true,
+    "save_conversations": false
+  }
+}
