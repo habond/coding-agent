@@ -21,7 +21,7 @@ python src/main.py
 
 ### Testing
 ```bash
-# Run all tests
+# Run all tests (API-safe, no charges)
 pytest
 
 # Run with verbose output
@@ -33,6 +33,8 @@ pytest tests/test_chat.py
 # Run tests with specific marker
 pytest -m unit
 ```
+
+**Important**: All tests automatically use API mocking via `tests/conftest.py`. No real API calls are made during testing.
 
 ### Code Quality
 ```bash
@@ -71,4 +73,23 @@ The application uses `config.json` for settings including model selection, debug
 - `pre-commit`: Git hooks for code quality
 
 ### Testing Structure
-Tests use pytest with mocking for external dependencies. The `conftest.py` sets up the Python path to import from `src/`. Test files follow the pattern `test_*.py` and are organized in the `tests/` directory.
+Tests use pytest with comprehensive API safety measures:
+- `tests/conftest.py` automatically mocks all Anthropic API calls
+- Python path setup for importing from `src/`
+- Test files follow the pattern `test_*.py` in the `tests/` directory
+- Automatic blocking of real API calls with error messages
+- Safe API key injection for test environments
+
+### CI/CD Pipeline
+GitHub Actions workflow (`.github/workflows/ci.yml`) provides:
+- Multi-Python version testing (3.11, 3.12)
+- Code quality validation (ruff linting/formatting)
+- API safety verification (blocks real API keys)
+- Pre-commit hook validation including pytest
+
+### API Safety Measures
+The codebase includes multiple layers of protection against accidental API charges:
+- Global test fixtures that block real API calls
+- CI environment validation that rejects real API keys
+- Mock responses for all Anthropic client interactions
+- Safe dummy API keys in test environments

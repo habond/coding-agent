@@ -14,7 +14,9 @@ A Python command-line interface for interacting with Anthropic's Claude AI. Feat
 - 🛠️ **Extensible tool system** with automatic discovery
 - 📝 **Debug logging** with conversation history
 - ⚙️ **Configurable settings** via JSON and environment variables
-- 🧪 **Comprehensive test suite** with mocking
+- 🧪 **Comprehensive test suite** with API safety measures
+- 🚀 **CI/CD ready** with GitHub Actions automation
+- 🔒 **Cost-safe testing** with automatic API mocking
 
 ## Quick Start
 
@@ -27,7 +29,7 @@ A Python command-line interface for interacting with Anthropic's Claude AI. Feat
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/habond/coding-agent.git
    cd coding-agent
    ```
 
@@ -123,6 +125,9 @@ TOOL_METADATA = {
 ## Development
 
 ### Running Tests
+
+**Safe Testing**: All tests use automatic API mocking to prevent accidental charges.
+
 ```bash
 # Run all tests
 pytest
@@ -136,6 +141,8 @@ pytest tests/test_chat.py
 # Run tests by marker
 pytest -m unit
 ```
+
+**Note**: Tests automatically block real API calls and use mock responses. No risk of API charges during testing.
 
 ### Code Quality
 ```bash
@@ -151,16 +158,22 @@ pre-commit run --all-files
 
 ### Project Structure
 ```
+├── .github/
+│   └── workflows/
+│       └── ci.yml       # GitHub Actions CI/CD
 ├── src/
 │   ├── main.py          # CLI entry point
 │   ├── chat.py          # Claude API integration
 │   └── tools/
 │       ├── registry.py  # Tool management
 │       └── *.py         # Individual tools
-├── tests/               # Test suite
+├── tests/
+│   ├── conftest.py      # Test configuration & API safety
+│   └── **/*.py          # Test suite with automatic mocking
 ├── config.json         # Application configuration
 ├── requirements.txt    # Python dependencies
 ├── pytest.ini         # Test configuration
+├── .pre-commit-config.yaml  # Code quality hooks
 └── run.sh             # Convenience script
 ```
 
@@ -184,14 +197,34 @@ Tools are discovered automatically using Python's `importlib`. Each tool defines
 
 When debug mode is enabled, all conversation history is logged to `logs/debug.json` for troubleshooting and development.
 
+### API Safety
+
+The project includes comprehensive safety measures to prevent accidental API charges:
+
+- **Automatic API mocking** in all tests via `tests/conftest.py`
+- **CI/CD safety checks** that block real API keys
+- **Test environment isolation** with safe dummy keys
+- **Pre-commit hooks** that validate code quality without API calls
+
+## CI/CD
+
+The project uses GitHub Actions for continuous integration:
+
+- **Multi-Python testing** (3.11, 3.12)
+- **Code quality checks** (ruff linting, formatting)
+- **Automated testing** with API safety guarantees
+- **Pre-commit validation** ensuring code standards
+
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests for new functionality
+4. Add tests for new functionality (automatically API-safe)
 5. Run the test suite and linting
 6. Submit a pull request
+
+All tests are automatically safe - no risk of API charges during development.
 
 ## License
 
