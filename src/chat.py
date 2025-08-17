@@ -29,6 +29,7 @@ class ClaudeChat:
         system_prompt: str | None = None,
         debug: bool = True,
         tool_registry: "ToolRegistry | None" = None,
+        tool_free: bool = False,
     ) -> None:
         self.client = Anthropic(api_key=api_key)
         self.model = model
@@ -39,6 +40,7 @@ class ClaudeChat:
         self.messages: list[MessageParam] = []
         self.debug = debug
         self.tool_registry = tool_registry
+        self.tool_free = tool_free
         self.tools = self._initialize_tools()
 
     def _initialize_tools(self) -> list[ToolParam]:
@@ -108,13 +110,21 @@ class ClaudeChat:
                 )
             )
 
-            follow_up = self.client.messages.create(
-                model=self.model,
-                max_tokens=1000,
-                system=self.system_prompt,
-                messages=self.messages,
-                tools=self.tools,
-            )
+            if self.tool_free:
+                follow_up = self.client.messages.create(
+                    model=self.model,
+                    max_tokens=1000,
+                    system=self.system_prompt,
+                    messages=self.messages,
+                )
+            else:
+                follow_up = self.client.messages.create(
+                    model=self.model,
+                    max_tokens=1000,
+                    system=self.system_prompt,
+                    messages=self.messages,
+                    tools=self.tools,
+                )
 
             follow_up_text = ""
             if follow_up.content and isinstance(follow_up.content[0], TextBlock):
@@ -129,13 +139,21 @@ class ClaudeChat:
         """Send a message to Claude and get the response."""
         self.messages.append(MessageParam(role="user", content=user_input))
 
-        response = self.client.messages.create(
-            model=self.model,
-            max_tokens=1000,
-            system=self.system_prompt,
-            messages=self.messages,
-            tools=self.tools,
-        )
+        if self.tool_free:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=1000,
+                system=self.system_prompt,
+                messages=self.messages,
+            )
+        else:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=1000,
+                system=self.system_prompt,
+                messages=self.messages,
+                tools=self.tools,
+            )
 
         if response.stop_reason == "tool_use":
             text, tool_display, follow_up = self._handle_tool_use(response)

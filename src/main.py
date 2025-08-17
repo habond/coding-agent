@@ -45,10 +45,11 @@ class ClaudeCLI:
             sys.exit(1)
         return api_key
 
-    def _setup_chat(self) -> None:
+    def _setup_chat(self, tool_free: bool = False) -> None:
         """Initialize chat with configuration."""
-        # Setup tools
-        self.tool_registry = ToolRegistry()
+        # Setup tools unless tool_free mode is enabled
+        if not tool_free:
+            self.tool_registry = ToolRegistry()
 
         # Create chat instance with tool registry
         self.chat = ClaudeChat(
@@ -57,17 +58,20 @@ class ClaudeCLI:
             system_prompt=self.config.get("system_prompt"),
             debug=self.config.get("debug", True),
             tool_registry=self.tool_registry,
+            tool_free=tool_free,
         )
 
-    def run_repl(self) -> None:
+    def run_repl(self, tool_free: bool = False) -> None:
         """Run interactive REPL mode."""
-        self._setup_chat()
+        self._setup_chat(tool_free=tool_free)
         assert self.chat is not None
 
         print("Claude REPL - Interactive Mode")
         print("Type 'exit', 'quit', or 'q' to exit")
         print("Type 'reset' to clear conversation history")
-        if self.tool_registry:
+        if tool_free:
+            print("Tools disabled - using Claude's internal knowledge only")
+        elif self.tool_registry:
             tools_list = ", ".join(self.tool_registry.tools.keys())
             print(f"Tools available: {tools_list}")
         print("-" * 40)
@@ -104,9 +108,9 @@ class ClaudeCLI:
 
                     traceback.print_exc()
 
-    def run_single(self, message: str) -> None:
+    def run_single(self, message: str, tool_free: bool = False) -> None:
         """Run a single message and exit."""
-        self._setup_chat()
+        self._setup_chat(tool_free=tool_free)
         assert self.chat is not None
 
         try:
@@ -131,6 +135,11 @@ def main() -> None:
     parser.add_argument("--model", help="Override model from config")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     parser.add_argument("--no-debug", action="store_true", help="Disable debug mode")
+    parser.add_argument(
+        "--no-tools",
+        action="store_true",
+        help="Disable tools and rely on Claude's internal knowledge",
+    )
 
     args = parser.parse_args()
 
@@ -145,9 +154,9 @@ def main() -> None:
         cli.config["debug"] = False
 
     if args.message:
-        cli.run_single(args.message)
+        cli.run_single(args.message, tool_free=args.no_tools)
     else:
-        cli.run_repl()
+        cli.run_repl(tool_free=args.no_tools)
 
 
 if __name__ == "__main__":

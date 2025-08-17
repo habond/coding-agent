@@ -62,6 +62,13 @@ A Python command-line interface for interacting with Anthropic's Claude AI. Feat
 ./run.sh "What is the current time?"
 ```
 
+#### Tool-Free Mode
+For questions that can be answered using Claude's internal knowledge without tools:
+```bash
+./run.sh --no-tools "What is the distance from Earth to the Moon?"
+./run.sh --no-tools "What is 2+2?"
+```
+
 #### Command Line Options
 ```bash
 python src/main.py --help
@@ -70,6 +77,8 @@ python src/main.py --help
 Options:
 - `--config`: Path to configuration file (default: `config.json`)
 - `--model`: Override the model from config
+- `--no-tools`: Disable tools and use Claude's internal knowledge only
+- `--debug` / `--no-debug`: Enable/disable debug mode
 
 ## Configuration
 
@@ -89,6 +98,8 @@ The application can be configured via `config.json`:
 ## Tools
 
 The tool system allows extending Claude's capabilities. Tools are automatically loaded from the `src/tools/` directory.
+
+When tools are available, Claude may prefer to use them even for questions it can answer with internal knowledge. Use the `--no-tools` flag to bypass this behavior and get direct answers from Claude's training data.
 
 ### Built-in Tools
 

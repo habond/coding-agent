@@ -15,6 +15,9 @@ This is a Python CLI application for interacting with Claude AI through the Anth
 # Single message mode
 ./run.sh "Your message here"
 
+# Tool-free mode (uses Claude's internal knowledge only)
+./run.sh --no-tools "What is the distance from Earth to the Moon?"
+
 # Using Python directly
 python src/main.py
 ```
@@ -64,6 +67,8 @@ pre-commit run --all-files
 Tools are automatically loaded from the `src/tools/` directory. Each tool file must define:
 - A handler function that takes `params: dict[str, Any]` and returns a string (with proper type annotations)
 - `TOOL_METADATA` dictionary with `name`, `description`, `handler`, and `input_schema`
+
+**Note**: When tools are available, Claude may prefer to use them even for questions it can answer with internal knowledge. Use the `--no-tools` flag to bypass this behavior and get direct answers from Claude's training data.
 
 ### Configuration
 The application uses `config.json` for settings including model selection and feature flags. Environment variables are loaded from `.env` file.
