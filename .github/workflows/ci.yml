@@ -26,6 +26,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Verify test environment safety
+      run: |
+        echo "Verifying no real API keys are used..."
+        if [[ "$ANTHROPIC_API_KEY" == *"sk-"* ]]; then
+          echo "ERROR: Real API key detected in CI environment!"
+          exit 1
+        fi
+        echo "✓ Safe test API key confirmed"
+      env:
+        ANTHROPIC_API_KEY: test-key-for-ci-no-real-calls
+
     - name: Lint with ruff
       run: |
         ruff check .
@@ -35,7 +46,8 @@ jobs:
       run: |
         pytest tests/ -v --tb=short
       env:
-        ANTHROPIC_API_KEY: dummy-key-for-testing
+        ANTHROPIC_API_KEY: test-key-for-ci-no-real-calls
+        PYTEST_DISABLE_PLUGIN_AUTOLOAD: 1
 
   code-quality:
     runs-on: ubuntu-latest
@@ -58,4 +70,4 @@ jobs:
         pip install pre-commit
         pre-commit run --all-files
       env:
-        ANTHROPIC_API_KEY: dummy-key-for-testing
+        ANTHROPIC_API_KEY: test-key-for-ci-no-real-calls

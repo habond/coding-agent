@@ -125,3 +125,60 @@ class TestClaudeChat:
         # Check that get_current_time tool is included
         tool_names = [tool["name"] for tool in tools]
         assert "get_current_time" in tool_names
+
+    @patch("chat.Anthropic")
+    def test_send_message_no_tools(self, mock_anthropic):
+        """Test sending a message without tool use (mocked API)."""
+        mock_anthropic.return_value = self.mock_client
+
+        # Mock the API response
+        mock_response = Mock()
+        mock_response.content = [Mock(text="Hello! I'm Claude.")]
+        mock_response.stop_reason = "end_turn"
+        self.mock_client.messages.create.return_value = mock_response
+
+        chat = ClaudeChat(api_key=self.api_key, debug=False)
+        response, tool_info = chat.send_message("Hello")
+
+        # Verify the API was called with mocked client
+        self.mock_client.messages.create.assert_called_once()
+        assert response == "Hello! I'm Claude."
+        assert tool_info is None
+
+        # Verify no real API key was used
+        call_args = self.mock_client.messages.create.call_args
+        assert "ANTHROPIC_API_KEY" not in str(call_args)
+
+    @patch("chat.Anthropic")
+    def test_send_message_with_tool_use(self, mock_anthropic):
+        """Test sending a message with tool use (mocked API)."""
+        mock_anthropic.return_value = self.mock_client
+
+        # Mock the initial tool use response
+        mock_tool_content = Mock()
+        mock_tool_content.type = "tool_use"
+        mock_tool_content.id = "tool_123"
+        mock_tool_content.name = "get_current_time"
+        mock_tool_content.input = {}
+
+        mock_response = Mock()
+        mock_response.content = [mock_tool_content]
+        mock_response.stop_reason = "tool_use"
+
+        # Mock the follow-up response after tool execution
+        mock_followup = Mock()
+        mock_followup.content = [Mock(text="The current time is displayed above.")]
+
+        self.mock_client.messages.create.side_effect = [mock_response, mock_followup]
+
+        chat = ClaudeChat(api_key=self.api_key, debug=False)
+        response, tool_info = chat.send_message("What time is it?")
+
+        # Verify the API was called twice (initial + follow-up)
+        assert self.mock_client.messages.create.call_count == 2
+        assert tool_info is not None
+        assert "get_current_time" in tool_info
+
+        # Verify no real API key was used
+        for call in self.mock_client.messages.create.call_args_list:
+            assert "ANTHROPIC_API_KEY" not in str(call)
