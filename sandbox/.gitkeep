@@ -1,0 +1,8 @@
+# This file ensures the sandbox directory is tracked by git
+# while ignoring all other contents in this directory
+#
+# The sandbox/ directory serves as a secure working area for the AI assistant:
+# - Directory structure is version controlled
+# - All file contents are ignored (.gitignore: sandbox/*)
+# - Provides isolated file system access for tool operations
+# - Safe for file creation, modification, and execution

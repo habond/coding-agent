@@ -8,3 +8,7 @@ venv/
 env/
 ENV/
 .venv
+
+# Ignore sandbox contents but keep the directory structure
+sandbox/*
+!sandbox/.gitkeep

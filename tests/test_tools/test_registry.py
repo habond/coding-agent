@@ -16,8 +16,8 @@ class TestToolRegistry:
         """Test that auto-loading finds and loads tools."""
         registry = ToolRegistry(auto_load=True)
         assert len(registry.tools) > 0
-        assert "get_current_time" in registry.tools
-        assert "sort_data" in registry.tools
+        assert "read_file" in registry.tools
+        assert "write_file" in registry.tools
 
     def test_register_tool(self):
         """Test manual tool registration."""
@@ -54,9 +54,11 @@ class TestToolRegistry:
     def test_execute_existing_tool(self):
         """Test executing an existing tool."""
         registry = ToolRegistry(auto_load=True)
-        result = registry.execute("get_current_time")
+        result = registry.execute(
+            "read_file", {"file_path": "/app/sandbox/nonexistent.txt"}
+        )
         assert isinstance(result, str)
-        assert len(result) > 0
+        assert "Error:" in result
 
     def test_execute_nonexistent_tool(self):
         """Test executing a tool that doesn't exist."""
@@ -67,8 +69,11 @@ class TestToolRegistry:
     def test_execute_with_parameters(self):
         """Test executing a tool with parameters."""
         registry = ToolRegistry(auto_load=True)
-        result = registry.execute("sort_data", {"data": "3,1,2", "numeric": True})
-        assert "[1, 2, 3]" in result
+        # Test read_file with a file that doesn't exist (will return error)
+        result = registry.execute(
+            "read_file", {"file_path": "/app/sandbox/nonexistent.txt"}
+        )
+        assert "Error:" in result
 
     def test_execute_with_error(self):
         """Test error handling during tool execution."""
@@ -94,5 +99,5 @@ class TestToolRegistry:
 
         assert isinstance(tools, list)
         assert len(tools) > 0
-        assert "get_current_time" in tools
-        assert "sort_data" in tools
+        assert "read_file" in tools
+        assert "write_file" in tools

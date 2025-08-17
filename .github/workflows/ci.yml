@@ -75,3 +75,70 @@ jobs:
         pre-commit run --all-files
       env:
         ANTHROPIC_API_KEY: test-key-for-ci-no-real-calls
+
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Validate Dockerfile
+      run: |
+        echo "Validating Dockerfile exists and is readable..."
+        if [ ! -f Dockerfile ]; then
+          echo "ERROR: Dockerfile not found!"
+          exit 1
+        fi
+        echo "✓ Dockerfile found"
+
+    - name: Build Docker image
+      run: |
+        echo "Building Docker image..."
+        docker build -t claude-cli:test .
+        echo "✓ Docker image built successfully"
+
+    - name: Test Docker image structure
+      run: |
+        echo "Testing Docker image structure..."
+        docker run --rm claude-cli:test python --version
+        docker run --rm claude-cli:test ls -la /app/
+        docker run --rm claude-cli:test ls -la /app/sandbox/
+        echo "✓ Docker image structure validated"
+
+    - name: Validate docker-compose.yml
+      run: |
+        echo "Validating docker-compose.yml..."
+        docker-compose config --quiet
+        echo "✓ docker-compose.yml is valid"
+
+    - name: Test Docker container with mock API
+      run: |
+        echo "Testing Docker container execution..."
+        echo "ANTHROPIC_API_KEY=test-key-for-ci" > .env
+        docker run --rm \
+          -e ANTHROPIC_API_KEY=test-key-for-ci \
+          claude-cli:test python -c "import sys; print('✓ Python imports working'); sys.exit(0)"
+        rm .env
+        echo "✓ Docker container execution successful"
+
+    - name: Security scan with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: claude-cli:test
+        format: 'table'
+        exit-code: '0'
+        ignore-unfixed: true
+        severity: 'CRITICAL,HIGH'
+
+    - name: Test sandbox directory permissions
+      run: |
+        echo "Testing sandbox directory permissions..."
+        docker run --rm claude-cli:test bash -c "
+          ls -ld /app/sandbox/ | grep 'drwxr-xr-x.*appuser'
+          touch /app/sandbox/test.txt && echo '✓ Can write to sandbox'
+          rm /app/sandbox/test.txt
+        "
+        echo "✓ Sandbox permissions validated"

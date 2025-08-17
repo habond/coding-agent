@@ -20,8 +20,9 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
-        args: [--config-file=mypy.ini]
+        args: [--config-file=mypy.ini, src]
         additional_dependencies: [types-requests, anthropic, python-dotenv]
+        pass_filenames: false
 
   - repo: local
     hooks:

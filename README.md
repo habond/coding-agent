@@ -13,6 +13,8 @@ A Python command-line interface for interacting with Anthropic's Claude AI. Feat
 - 🔄 **Interactive REPL mode** for ongoing conversations
 - ⚡ **Single-message mode** for quick queries
 - 🛠️ **Extensible tool system** with automatic discovery
+- 📁 **Secure sandbox** for file operations (Docker isolated)
+- 🐳 **Docker support** for secure, containerized execution
 - ⚙️ **Configurable settings** via JSON and environment variables
 - 🧪 **Comprehensive test suite** with API safety measures
 - 🚀 **CI/CD ready** with GitHub Actions automation
@@ -23,7 +25,7 @@ A Python command-line interface for interacting with Anthropic's Claude AI. Feat
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.11+ OR Docker (recommended for security)
 - Anthropic API key
 
 ### Installation
@@ -34,32 +36,56 @@ A Python command-line interface for interacting with Anthropic's Claude AI. Feat
    cd coding-agent
    ```
 
-2. Create a virtual environment:
+2. Set up your API key:
+   ```bash
+   echo "ANTHROPIC_API_KEY=your-api-key-here" > .env
+   ```
+
+#### Option A: Docker (Recommended for Security)
+
+No additional setup required! Docker containers are built automatically.
+
+#### Option B: Local Python Environment
+
+1. Create a virtual environment:
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. Install dependencies:
+2. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Set up your API key:
-   ```bash
-   echo "ANTHROPIC_API_KEY=your-api-key-here" > .env
-   ```
-
 ### Usage
 
-#### Interactive Mode
+#### Docker Mode (Recommended - Secure Sandboxed Environment)
+
 ```bash
+# Interactive REPL mode
 ./run.sh
+
+# Single message mode
+./run.sh "What is the current time?"
+
+# With docker-compose directly
+docker-compose run --rm claude-cli
+docker-compose run --rm claude-cli python src/main.py "Your message"
 ```
 
-#### Single Message Mode
+#### Local Mode (Development)
+
 ```bash
-./run.sh "What is the current time?"
+# Interactive REPL mode
+./run.sh --local
+
+# Single message mode
+./run.sh --local "What is the current time?"
+
+# Direct Python execution
+python src/main.py
+python src/main.py "Your message"
 ```
 
 #### Command Line Options
@@ -78,10 +104,15 @@ The application can be configured via `config.json`:
 ```json
 {
   "model": "claude-3-haiku-20240307",
-  "max_tokens": 1000,
-  "system_prompt": "You are a helpful AI assistant. Be concise and clear in your responses."
+  "max_tokens": 4000,
+  "system_prompt": "Expert coding assistant with secure sandbox access for file operations"
 }
 ```
+
+The system prompt is optimized for coding assistance with emphasis on:
+- Using the sandbox environment for file operations
+- Providing practical programming solutions
+- Code analysis and debugging capabilities
 
 ## Tools
 
@@ -89,8 +120,9 @@ The tool system allows extending Claude's capabilities. Tools are automatically 
 
 ### Built-in Tools
 
-- **get_current_time**: Returns the current date and time
-- **sort_data**: Sorts data in various formats (JSON arrays, CSV, etc.)
+- **read_file**: Reads files within the secure sandbox directory
+- **write_file**: Writes/appends to files within the sandbox (with auto-directory creation)
+- **list_files**: Recursively lists files in sandbox directories
 
 ### Creating Custom Tools
 
@@ -168,12 +200,17 @@ pre-commit run --all-files
 ├── tests/
 │   ├── conftest.py      # Test configuration & API safety
 │   └── **/*.py          # Test suite with automatic mocking
+├── sandbox/             # Secure working directory for file operations
+│   └── .gitkeep        # Keeps directory in git
 ├── config.json         # Application configuration
 ├── requirements.txt    # Python dependencies
+├── Dockerfile          # Docker container definition
+├── docker-compose.yml  # Docker orchestration
 ├── pytest.ini         # Test configuration
 ├── mypy.ini           # Type checking configuration
 ├── .pre-commit-config.yaml  # Code quality hooks
-└── run.sh             # Convenience script
+├── run.sh             # Convenience script (Docker/local modes)
+└── CLAUDE.md          # Claude Code assistant instructions
 ```
 
 ## Architecture
@@ -184,6 +221,15 @@ pre-commit run --all-files
 - **ClaudeChat**: Manages API communication and conversation state
 - **ToolRegistry**: Dynamically loads and executes tools
 
+### Sandbox Environment
+
+The `sandbox/` directory provides a secure workspace for file operations:
+- Isolated from system files (security boundary enforced)
+- Persistent between sessions
+- Auto-creates nested directories as needed
+- Docker container mounts this as `/app/sandbox`
+- All file tools are restricted to this directory
+
 ### Tool System
 
 Tools are discovered automatically using Python's `importlib`. Each tool defines metadata that describes its interface, allowing the system to:
@@ -192,14 +238,23 @@ Tools are discovered automatically using Python's `importlib`. Each tool defines
 - Validate input parameters
 - Execute tools safely with error handling
 
-### API Safety
+### Security & Safety
 
-The project includes comprehensive safety measures to prevent accidental API charges:
-
+#### API Safety
+The project includes comprehensive measures to prevent accidental API charges:
 - **Automatic API mocking** in all tests via `tests/conftest.py`
 - **CI/CD safety checks** that block real API keys
 - **Test environment isolation** with safe dummy keys
 - **Pre-commit hooks** that validate code quality without API calls
+
+#### Docker Security
+The Docker setup provides multiple security layers:
+- **Non-root user**: Application runs as unprivileged user `appuser`
+- **Resource limits**: Memory (512M) and CPU (0.5) constraints
+- **Network isolation**: Dedicated Docker network
+- **Read-only mounts**: Configuration files mounted as read-only
+- **Sandbox isolation**: File operations restricted to `/app/sandbox`
+- **No privilege escalation**: Security options prevent elevation
 
 ## CI/CD
 

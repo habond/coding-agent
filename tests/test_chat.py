@@ -59,15 +59,17 @@ class TestClaudeChat:
         assert chat.messages == []
 
     @patch("chat.Anthropic")
-    def test_execute_tool_get_current_time(self, mock_anthropic: Any) -> None:
-        """Test executing get_current_time tool."""
+    def test_execute_tool_read_file(self, mock_anthropic: Any) -> None:
+        """Test executing read_file tool with error (since file doesn't exist)."""
         mock_anthropic.return_value = self.mock_client
 
         chat = ClaudeChat(api_key=self.api_key)
-        result = chat._execute_tool("get_current_time", {})
+        result = chat._execute_tool(
+            "read_file", {"file_path": "/app/sandbox/nonexistent.txt"}
+        )
 
         assert isinstance(result, str)
-        assert len(result) > 0
+        assert "Error:" in result
 
     @patch("chat.Anthropic")
     def test_execute_tool_unknown(self, mock_anthropic: Any) -> None:
@@ -90,9 +92,9 @@ class TestClaudeChat:
         assert isinstance(tools, list)
         assert len(tools) > 0
 
-        # Check that get_current_time tool is included
+        # Check that read_file tool is included
         tool_names = [tool["name"] for tool in tools]
-        assert "get_current_time" in tool_names
+        assert "read_file" in tool_names
 
     @patch("chat.Anthropic")
     def test_send_message_no_tools(self, mock_anthropic: Any) -> None:
@@ -129,7 +131,7 @@ class TestClaudeChat:
         mock_tool_content = Mock()
         mock_tool_content.type = "tool_use"
         mock_tool_content.id = "tool_123"
-        mock_tool_content.name = "get_current_time"
+        mock_tool_content.name = "read_file"
         mock_tool_content.input = {}
 
         mock_response = Mock()
@@ -138,17 +140,77 @@ class TestClaudeChat:
 
         # Mock the follow-up response after tool execution
         mock_followup = Mock()
-        mock_followup.content = [Mock(text="The current time is displayed above.")]
+        mock_followup.content = [Mock(text="The file content is displayed above.")]
 
         self.mock_client.messages.create.side_effect = [mock_response, mock_followup]
 
         chat = ClaudeChat(api_key=self.api_key)
-        response, tool_info = chat.send_message("What time is it?")
+        response, tool_info = chat.send_message("Read a file")
 
         # Verify the API was called twice (initial + follow-up)
         assert self.mock_client.messages.create.call_count == 2
         assert tool_info is not None
-        assert "get_current_time" in tool_info
+        assert "read_file" in tool_info
+
+        # Verify no real API key was used
+        for call in self.mock_client.messages.create.call_args_list:
+            assert "ANTHROPIC_API_KEY" not in str(call)
+
+    @patch("chat.Anthropic")
+    def test_recursive_tool_use_handling(self, mock_anthropic: Any) -> None:
+        """Test that multiple sequential tool uses are handled correctly."""
+        mock_anthropic.return_value = self.mock_client
+
+        # Mock the initial tool use response (read_file)
+        mock_tool_content_1 = Mock()
+        mock_tool_content_1.type = "tool_use"
+        mock_tool_content_1.id = "tool_123"
+        mock_tool_content_1.name = "read_file"
+        mock_tool_content_1.input = {"file_path": "/app/sandbox/test.txt"}
+
+        mock_response_1 = Mock()
+        mock_response_1.content = [mock_tool_content_1]
+        mock_response_1.stop_reason = "tool_use"
+
+        # Mock the follow-up response after read_file (should contain write_file tool use)
+        mock_tool_content_2 = Mock()
+        mock_tool_content_2.type = "tool_use"
+        mock_tool_content_2.id = "tool_456"
+        mock_tool_content_2.name = "write_file"
+        mock_tool_content_2.input = {
+            "file_path": "/app/sandbox/fixed.txt",
+            "content": "fixed content",
+        }
+
+        mock_response_2 = Mock()
+        mock_response_2.content = [mock_tool_content_2]
+        mock_response_2.stop_reason = "tool_use"
+
+        # Mock the final response after write_file (no more tools)
+        mock_response_3 = Mock()
+        mock_final_content = Mock(text="File has been created successfully!")
+        mock_response_3.content = [mock_final_content]
+        mock_response_3.stop_reason = "end_turn"
+
+        # Set up the sequence of API calls
+        self.mock_client.messages.create.side_effect = [
+            mock_response_1,  # Initial response with read_file
+            mock_response_2,  # Follow-up with write_file
+            mock_response_3,  # Final response
+        ]
+
+        chat = ClaudeChat(api_key=self.api_key)
+        response, tool_info = chat.send_message("Fix the buggy file")
+
+        # Verify all three API calls were made (this proves recursive handling works)
+        assert self.mock_client.messages.create.call_count == 3
+
+        # Verify tool execution was tracked
+        assert tool_info is not None
+        assert "read_file" in tool_info
+
+        # The key test is that multiple API calls were made sequentially
+        # This proves the recursive tool handling is working correctly
 
         # Verify no real API key was used
         for call in self.mock_client.messages.create.call_args_list:

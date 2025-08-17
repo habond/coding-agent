@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from anthropic import Anthropic
@@ -44,23 +43,22 @@ class ClaudeChat:
         if self.tool_registry:
             return self.tool_registry.get_tool_definitions()
 
-        return [
-            ToolParam(
-                name="get_current_time",
-                description="Get the current date and time",
-                input_schema={"type": "object", "properties": {}, "required": []},
-            )
-        ]
+        # No fallback tools - use ToolRegistry
+        from tools.registry import ToolRegistry
+
+        registry = ToolRegistry(auto_load=True)
+        return registry.get_tool_definitions()
 
     def _execute_tool(self, tool_name: str, tool_input: dict[str, Any]) -> str:
         """Execute a tool and return the result."""
         if self.tool_registry:
             return self.tool_registry.execute(tool_name, tool_input)
 
-        if tool_name == "get_current_time":
-            return datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z")
-        else:
-            return f"Error: Unknown tool '{tool_name}'"
+        # No fallback execution - use ToolRegistry
+        from tools.registry import ToolRegistry
+
+        registry = ToolRegistry(auto_load=True)
+        return registry.execute(tool_name, tool_input)
 
     def _handle_tool_use(self, response: Message) -> tuple[str, str | None, str | None]:
         """Handle tool use in Claude's response."""
@@ -114,12 +112,34 @@ class ClaudeChat:
                 tools=self.tools,
             )
 
-            follow_up_text = ""
-            if follow_up.content and isinstance(follow_up.content[0], TextBlock):
-                follow_up_text = follow_up.content[0].text
-            self.messages.append(MessageParam(role="assistant", content=follow_up_text))
-
-            return output_text, tool_display, follow_up_text
+            # Check if follow-up response also contains tool use
+            if follow_up.stop_reason == "tool_use":
+                # Recursively handle additional tool use
+                follow_up_text, follow_up_tool_display, final_text = (
+                    self._handle_tool_use(follow_up)
+                )
+                combined_follow_up = ""
+                if follow_up_text and follow_up_tool_display and final_text:
+                    combined_follow_up = (
+                        follow_up_text
+                        + "\n"
+                        + follow_up_tool_display
+                        + "\n"
+                        + final_text
+                    )
+                elif follow_up_tool_display and final_text:
+                    combined_follow_up = follow_up_tool_display + "\n" + final_text
+                elif final_text:
+                    combined_follow_up = final_text
+                return output_text, tool_display, combined_follow_up
+            else:
+                follow_up_text = ""
+                if follow_up.content and isinstance(follow_up.content[0], TextBlock):
+                    follow_up_text = follow_up.content[0].text
+                self.messages.append(
+                    MessageParam(role="assistant", content=follow_up_text)
+                )
+                return output_text, tool_display, follow_up_text
 
         return output_text, None, None
 
