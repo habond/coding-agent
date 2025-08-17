@@ -50,25 +50,14 @@ class ClaudeCLI:
         # Setup tools
         self.tool_registry = ToolRegistry()
 
-        # Create chat instance with updated claude_chat
+        # Create chat instance with tool registry
         self.chat = ClaudeChat(
             api_key=self.api_key,
             model=self.config.get("model", "claude-3-haiku-20240307"),
             system_prompt=self.config.get("system_prompt"),
             debug=self.config.get("debug", True),
+            tool_registry=self.tool_registry,
         )
-
-        # Override tools if using custom registry
-        if self.tool_registry:
-            self.chat.tools = self.tool_registry.get_tool_definitions()
-            # Override the execute method
-            if self.tool_registry:  # Additional check for mypy
-
-                def execute_wrapper(tool_name: str, tool_input: dict[str, Any]) -> str:
-                    assert self.tool_registry is not None  # for mypy
-                    return self.tool_registry.execute(tool_name, tool_input)
-
-                self.chat._execute_tool = execute_wrapper  # type: ignore[method-assign]
 
     def run_repl(self) -> None:
         """Run interactive REPL mode."""

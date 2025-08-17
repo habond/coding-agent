@@ -5,6 +5,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from anthropic.types import ToolParam
+
 
 class ToolRegistry:
     """Registry for managing available tools."""
@@ -67,18 +69,18 @@ class ToolRegistry:
             "input_schema": input_schema,
         }
 
-    def get_tool_definitions(self) -> list[dict[str, Any]]:
+    def get_tool_definitions(self) -> list[ToolParam]:
         """Get tool definitions for Claude API.
 
         Returns:
             List of tool definitions in the format expected by Claude API
         """
         return [
-            {
-                "name": tool["name"],
-                "description": tool["description"],
-                "input_schema": tool["input_schema"],
-            }
+            ToolParam(
+                name=tool["name"],
+                description=tool["description"],
+                input_schema=tool["input_schema"],
+            )
             for tool in self.tools.values()
         ]
 
