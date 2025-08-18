@@ -133,6 +133,7 @@ The tool system allows extending Claude's capabilities. Tools are automatically 
 - **read_file**: Reads files within the secure sandbox directory
 - **write_file**: Writes/appends to files within the sandbox (with auto-directory creation)
 - **list_files**: Recursively lists files in sandbox directories
+- **rename_file**: Renames or moves files within the sandbox directory
 
 ### Creating Custom Tools
 

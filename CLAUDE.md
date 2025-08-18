@@ -151,6 +151,7 @@ Tools are automatically loaded from the `src/tools/` directory. Each tool file m
 - **`read_file`**: Reads the full contents of files within the sandbox directory
 - **`write_file`**: Writes content to files within the sandbox directory (supports overwrite and append modes)
 - **`list_files`**: Recursively lists all files in a directory within the sandbox
+- **`rename_file`**: Renames or moves files within the sandbox directory (creates destination directories as needed)
 
 **Tool Discovery**: Tools are auto-loaded from `src/tools/` using dynamic imports. Each tool must export `TOOL_METADATA` with `name`, `description`, `handler`, and `input_schema`.
 
