@@ -3,6 +3,8 @@
 import os
 from typing import Any
 
+from models import ToolMetadata
+
 
 def read_file(params: dict[str, Any]) -> str:
     """Read the full contents of a file.
@@ -63,7 +65,7 @@ def read_file(params: dict[str, Any]) -> str:
 
 
 # Tool metadata for registration
-TOOL_METADATA = {
+TOOL_METADATA: ToolMetadata = {
     "name": "read_file",
     "description": "Read the full contents of a file from the sandbox directory",
     "handler": read_file,

@@ -10,6 +10,7 @@ from typing import Any
 from dotenv import load_dotenv
 
 from chat import ClaudeChat
+from models import ToolRegistryProtocol
 from tools import ToolRegistry
 
 
@@ -21,7 +22,7 @@ class ClaudeCLI:
         self.config = self._load_config(config_path)
         self.api_key = self._get_api_key()
         self.chat: ClaudeChat | None = None
-        self.tool_registry: ToolRegistry | None = None
+        self.tool_registry: ToolRegistryProtocol | None = None
 
     def _load_config(self, config_path: str) -> dict[str, Any]:
         """Load configuration from JSON file."""

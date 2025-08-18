@@ -16,7 +16,7 @@ from anthropic.types import (
 
 
 if TYPE_CHECKING:
-    from tools.registry import ToolRegistry
+    from models import ToolRegistryProtocol
 
 
 class ClaudeChat:
@@ -27,7 +27,7 @@ class ClaudeChat:
         api_key: str,
         model: str = "claude-3-haiku-20240307",
         system_prompt: str | None = None,
-        tool_registry: "ToolRegistry | None" = None,
+        tool_registry: "ToolRegistryProtocol | None" = None,
     ) -> None:
         self.client = Anthropic(api_key=api_key)
         self.model = model

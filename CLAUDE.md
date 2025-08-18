@@ -128,7 +128,8 @@ docker compose run --rm claude-cli mypy src/
 
 - **`src/main.py`**: Entry point with CLI argument parsing, application setup, and conversation boundary display
 - **`src/chat.py`**: `ClaudeChat` class that manages API communication, conversation state, streaming responses, and tool execution
-- **`src/tools/registry.py`**: `ToolRegistry` class for dynamic tool loading and management
+- **`src/models.py`**: Type definitions including `ToolMetadata`, `ToolInputSchema`, `ToolRegistryProtocol`, and `AbstractToolRegistry` for type safety
+- **`src/tools/registry.py`**: `ToolRegistry` class implementing `AbstractToolRegistry` for dynamic tool loading and management
 - **`src/tools/`**: Individual tool implementations with `TOOL_METADATA` for auto-registration
 
 ### Streaming Implementation
@@ -143,9 +144,16 @@ The application uses Anthropic's streaming API for real-time output:
 **Key Architecture**: The streaming system handles tool use by storing conversation state in `self.messages`, executing tools synchronously, then continuing to stream the follow-up response. This maintains the conversational flow while providing immediate visual feedback.
 
 ### Tool System
-Tools are automatically loaded from the `src/tools/` directory. Each tool file must define:
+Tools are automatically loaded from the `src/tools/` directory using the `ToolRegistry` class which implements `AbstractToolRegistry`. Each tool file must define:
 - A handler function that takes `params: dict[str, Any]` and returns a string (with proper type annotations)
-- `TOOL_METADATA` dictionary with `name`, `description`, `handler`, and `input_schema`
+- `TOOL_METADATA` dictionary conforming to the `ToolMetadata` TypedDict with `name`, `description`, `handler`, and `input_schema`
+
+#### Type Safety Architecture
+The tool system uses strongly typed interfaces defined in `src/models.py`:
+- **`ToolMetadata`**: TypedDict defining the structure of tool metadata
+- **`ToolInputSchema`**: TypedDict for JSON schema validation of tool inputs
+- **`ToolRegistryProtocol`**: Protocol defining the interface for tool registries
+- **`AbstractToolRegistry`**: Abstract base class providing common tool registry functionality
 
 #### Available Tools
 - **`read_file`**: Reads the full contents of files within the sandbox directory
@@ -240,12 +248,25 @@ The system prompt is optimized for coding assistance with emphasis on:
 - Code analysis and debugging capabilities
 - Proper use of sandbox file paths (/app/sandbox/)
 
-### Type Checking
-The project uses mypy for static type checking with configuration in `mypy.ini`:
+### Type Safety & Architecture
+The project uses comprehensive type safety measures:
+
+#### Static Type Checking
+- **mypy** for static type checking with configuration in `mypy.ini`
 - Comprehensive type annotations throughout the codebase
 - Strict type checking for better code quality and developer experience
 - Type-safe handling of Anthropic API responses
 - Integrated into pre-commit hooks and CI/CD pipeline
+
+#### Type Definitions
+`src/models.py` provides strongly typed interfaces:
+- **`ToolMetadata`**: TypedDict for tool metadata structure
+- **`ToolInputSchema`**: TypedDict for JSON schema validation
+- **`ToolExecutionResult`**: TypedDict for tool execution results
+- **`ToolRegistryProtocol`**: Protocol defining tool registry interface
+- **`AbstractToolRegistry`**: Abstract base class with common functionality
+
+This replaces previous `dict[str, Any]` usage with proper typed interfaces throughout the codebase.
 
 ### Key Dependencies
 - `anthropic`: Claude API client (with streaming support)
@@ -260,26 +281,28 @@ To add new functionality, create a Python file in `src/tools/` with this structu
 
 ```python
 from typing import Any
+from models import ToolMetadata, ToolInputSchema
 
 def my_tool(params: dict[str, Any]) -> str:
     """Your tool implementation."""
     return "Tool result"
 
-TOOL_METADATA = {
+# Type-safe tool metadata using TypedDict
+TOOL_METADATA: ToolMetadata = {
     "name": "my_tool",
     "description": "Description of what the tool does",
     "handler": my_tool,
-    "input_schema": {
+    "input_schema": ToolInputSchema({
         "type": "object",
         "properties": {
             "param1": {"type": "string", "description": "Parameter description"}
         },
         "required": ["param1"]
-    }
+    })
 }
 ```
 
-The `ToolRegistry` class automatically discovers and loads tools using `importlib`, making them available immediately without manual registration.
+The `ToolRegistry` class automatically discovers and loads tools using `importlib`, making them available immediately without manual registration. The type system ensures compile-time validation of tool metadata structure.
 
 ### Testing Structure
 Tests use pytest with comprehensive API safety measures:
@@ -288,6 +311,31 @@ Tests use pytest with comprehensive API safety measures:
 - Test files follow the pattern `test_*.py` in the `tests/` directory
 - Automatic blocking of real API calls with error messages
 - Safe API key injection for test environments
+
+#### Test Development Patterns
+When writing tests for tools or functions that use OS operations:
+- **Mock all OS operations**: Use `@patch` decorators for `os.path.exists`, `os.path.isfile`, `os.makedirs`, `os.rename`, etc.
+- **Environment differences**: CI environments may behave differently than local - ensure comprehensive mocking
+- **Error handling**: Test both success and failure paths with proper exception mocking
+- **Type safety**: Tests should use the same type annotations as the code being tested
+
+Example test pattern for file operations:
+```python
+@patch("os.path.exists")
+@patch("os.path.isfile")
+@patch("os.makedirs")
+@patch("os.rename")
+def test_file_operation(self, mock_rename, mock_makedirs, mock_isfile, mock_exists):
+    # Configure mocks to simulate expected file system state
+    mock_exists.return_value = True
+    mock_isfile.return_value = True
+
+    # Test the operation
+    result = your_function(params)
+
+    # Assert expected behavior
+    self.assertIn("Success", result)
+```
 
 ### CI/CD Pipeline
 GitHub Actions workflow (`.github/workflows/ci.yml`) provides:

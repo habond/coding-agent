@@ -152,8 +152,11 @@ class TestRenameFile(unittest.TestCase):
 
     @patch("os.path.exists")
     @patch("os.path.isfile")
+    @patch("os.makedirs")
     @patch("os.rename", side_effect=OSError("Disk full"))
-    def test_rename_file_os_error(self, mock_rename, mock_isfile, mock_exists):
+    def test_rename_file_os_error(
+        self, mock_rename, mock_makedirs, mock_isfile, mock_exists
+    ):
         """Test rename_file with OS error."""
 
         def mock_exists_side_effect(path):

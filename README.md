@@ -84,6 +84,122 @@ docker-compose run --rm claude-cli python src/main.py "Your message"
 - Consistent formatting with proper spacing and visual hierarchy
 - Graceful handling of piped input and EOF conditions
 
+### Example Interactive Session
+
+Here's what a typical interaction looks like:
+
+```
+$ ./run.sh
+
+========================================
+[USER MESSAGE]
+========================================
+
+You: Create a Python script that calculates fibonacci numbers and save it to the sandbox
+
+========================================
+[ASSISTANT MESSAGE]
+========================================
+
+Claude: I'll create a Python script that calculates Fibonacci numbers for you. Let me write this to the sandbox directory.
+
+========================================
+[TOOL CALL]
+========================================
+
+[Tool: write_file -> Success: File written to fibonacci.py (73 bytes)]
+
+========================================
+[ASSISTANT MESSAGE]
+========================================
+
+I've created a Python script at `/app/sandbox/fibonacci.py` that calculates Fibonacci numbers. The script includes:
+
+- A function to calculate the nth Fibonacci number
+- An interactive prompt for user input
+- Error handling for invalid inputs
+
+You can run this script to generate Fibonacci sequences. Would you like me to show you the contents or make any modifications?
+
+========================================
+[USER MESSAGE]
+========================================
+
+You: Show me the contents and then create a test file for it
+
+========================================
+[ASSISTANT MESSAGE]
+========================================
+
+Claude: I'll show you the contents of the fibonacci script and then create a test file for it.
+
+========================================
+[TOOL CALL]
+========================================
+
+[Tool: read_file -> # Fibonacci Number Calculator
+
+def fibonacci(n):
+    """Calculate the nth Fibonacci number using iteration."""
+    if n <= 0:
+        return 0
+    elif n == 1:
+        return 1
+
+    a, b = 0, 1
+    for _ in range(2, n + 1):
+        a, b = b, a + b
+    return b
+
+def main():
+    try:
+        n = int(input("Enter a number: "))
+        if n < 0:
+            print("Please enter a non-negative number.")
+            return
+
+        result = fibonacci(n)
+        print(f"The {n}th Fibonacci number is: {result}")
+
+    except ValueError:
+        print("Please enter a valid integer.")
+
+if __name__ == "__main__":
+    main()]
+
+========================================
+[TOOL CALL]
+========================================
+
+[Tool: write_file -> Success: File written to test_fibonacci.py (87 bytes)]
+
+========================================
+[ASSISTANT MESSAGE]
+========================================
+
+Perfect! I've shown you the contents of the Fibonacci script and created a comprehensive test file. The test file includes:
+
+- Unit tests for the fibonacci function with various inputs
+- Edge case testing (negative numbers, zero, one)
+- Tests for the main function behavior
+
+Both files are now in your sandbox directory and ready to use. You can run the tests with `python test_fibonacci.py` to verify the implementation works correctly.
+
+========================================
+[USER MESSAGE]
+========================================
+
+You: exit
+
+Goodbye!
+```
+
+This example demonstrates:
+- **Streaming responses**: Claude's text appears in real-time as it's generated
+- **Tool integration**: File operations are executed seamlessly within the conversation
+- **Visual clarity**: Clear boundaries between different interaction types
+- **Persistent context**: The assistant remembers previous actions and builds upon them
+
 #### Local Mode (Development)
 
 ```bash
@@ -142,22 +258,24 @@ Create a new Python file in `src/tools/` with the following structure:
 
 ```python
 from typing import Any
+from models import ToolMetadata, ToolInputSchema
 
 def my_tool(params: dict[str, Any]) -> str:
     """Your tool implementation."""
     return "Tool result"
 
-TOOL_METADATA = {
+# Type-safe tool metadata using TypedDict
+TOOL_METADATA: ToolMetadata = {
     "name": "my_tool",
     "description": "Description of what the tool does",
     "handler": my_tool,
-    "input_schema": {
+    "input_schema": ToolInputSchema({
         "type": "object",
         "properties": {
             "param1": {"type": "string", "description": "Parameter description"}
         },
         "required": ["param1"]
-    }
+    })
 }
 ```
 
@@ -206,6 +324,7 @@ pre-commit run --all-files
 ├── src/
 │   ├── main.py          # CLI entry point
 │   ├── chat.py          # Claude API integration
+│   ├── models.py        # Type definitions and interfaces
 │   └── tools/
 │       ├── registry.py  # Tool management
 │       └── *.py         # Individual tools
@@ -231,7 +350,8 @@ pre-commit run --all-files
 
 - **ClaudeCLI**: Main application class handling CLI arguments and modes
 - **ClaudeChat**: Manages API communication, conversation state, and streaming responses
-- **ToolRegistry**: Dynamically loads and executes tools
+- **ToolRegistry**: Dynamically loads and executes tools with type-safe interfaces
+- **Type System**: Strongly typed interfaces in `src/models.py` for tool metadata and registry protocols
 
 ### Streaming Architecture
 
@@ -251,11 +371,17 @@ The `sandbox/` directory provides a secure workspace for file operations:
 
 ### Tool System
 
-Tools are discovered automatically using Python's `importlib`. Each tool defines metadata that describes its interface, allowing the system to:
+Tools are discovered automatically using Python's `importlib` with a type-safe architecture. The system uses strongly typed interfaces defined in `src/models.py`:
 
+- **ToolMetadata**: TypedDict for tool metadata structure
+- **ToolRegistryProtocol**: Protocol defining tool registry interface
+- **AbstractToolRegistry**: Base class providing common functionality
+
+This allows the system to:
 - Generate API-compatible tool definitions
-- Validate input parameters
+- Validate input parameters with type safety
 - Execute tools safely with error handling
+- Ensure compile-time type checking of tool interfaces
 
 ### Security & Safety
 

@@ -1,14 +1,13 @@
 """Tool registry for managing available tools."""
 
 import importlib
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from anthropic.types import ToolParam
+from models import AbstractToolRegistry, ToolInputSchema, ToolMetadata
 
 
-class ToolRegistry:
+class ToolRegistry(AbstractToolRegistry):
     """Registry for managing available tools."""
 
     def __init__(self, auto_load: bool = True) -> None:
@@ -17,11 +16,11 @@ class ToolRegistry:
         Args:
             auto_load: Whether to automatically load all tools from the tools directory
         """
-        self.tools: dict[str, dict[str, Any]] = {}
+        super().__init__()
         if auto_load:
-            self._auto_load_tools()
+            self.load_tools()
 
-    def _auto_load_tools(self) -> None:
+    def load_tools(self) -> None:
         """Automatically load all tools from the tools directory."""
         tools_dir = Path(__file__).parent
 
@@ -37,7 +36,7 @@ class ToolRegistry:
 
                 # Check if the module has TOOL_METADATA
                 if hasattr(module, "TOOL_METADATA"):
-                    metadata = module.TOOL_METADATA
+                    metadata: ToolMetadata = module.TOOL_METADATA
                     self.register_tool(
                         name=metadata["name"],
                         description=metadata["description"],
@@ -51,8 +50,8 @@ class ToolRegistry:
         self,
         name: str,
         description: str,
-        handler: Callable[[dict[str, Any]], str],
-        input_schema: dict[str, Any],
+        handler: Any,  # Keep as Any for compatibility with existing tools
+        input_schema: ToolInputSchema,
     ) -> None:
         """Register a new tool.
 
@@ -62,52 +61,4 @@ class ToolRegistry:
             handler: The function to call when the tool is executed
             input_schema: JSON schema for the tool's input parameters
         """
-        self.tools[name] = {
-            "name": name,
-            "description": description,
-            "handler": handler,
-            "input_schema": input_schema,
-        }
-
-    def get_tool_definitions(self) -> list[ToolParam]:
-        """Get tool definitions for Claude API.
-
-        Returns:
-            List of tool definitions in the format expected by Claude API
-        """
-        return [
-            ToolParam(
-                name=tool["name"],
-                description=tool["description"],
-                input_schema=tool["input_schema"],
-            )
-            for tool in self.tools.values()
-        ]
-
-    def execute(self, tool_name: str, tool_input: dict[str, Any] | None = None) -> str:
-        """Execute a tool by name.
-
-        Args:
-            tool_name: The name of the tool to execute
-            tool_input: Input parameters for the tool
-
-        Returns:
-            The result of the tool execution as a string
-        """
-        if tool_name not in self.tools:
-            return f"Error: Unknown tool '{tool_name}'"
-
-        try:
-            handler = self.tools[tool_name]["handler"]
-            result = handler(tool_input or {})
-            return str(result)  # Ensure we return a string
-        except Exception as e:
-            return f"Error executing {tool_name}: {str(e)}"
-
-    def list_tools(self) -> list[str]:
-        """Get a list of all registered tool names.
-
-        Returns:
-            List of tool names
-        """
-        return list(self.tools.keys())
+        super().register_tool(name, description, handler, input_schema)
