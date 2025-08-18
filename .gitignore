@@ -12,4 +12,3 @@ ENV/
 # Ignore sandbox contents but keep the directory structure
 sandbox/*
 !sandbox/.gitkeep
-# Test sync
