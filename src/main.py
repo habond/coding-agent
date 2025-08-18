@@ -73,6 +73,9 @@ class ClaudeCLI:
         while True:
             try:
                 print("\n" + "=" * 40)
+                print("[USER MESSAGE]")
+                print("=" * 40)
+                print()
                 user_input = input("You: ").strip()
 
                 if user_input.lower() in ["exit", "quit", "q"]:
@@ -87,7 +90,11 @@ class ClaudeCLI:
                 if not user_input:
                     continue
 
-                print("-" * 40)
+                print()
+                print("=" * 40)
+                print("[ASSISTANT MESSAGE]")
+                print("=" * 40)
+                print()
                 print("Claude: ", end="", flush=True)
 
                 # Stream the response

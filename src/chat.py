@@ -205,7 +205,16 @@ class ClaudeChat:
             tool_input = cast(dict[str, Any], tool_use.input) if tool_use.input else {}
             result = self._execute_tool(tool_use.name, tool_input)
             tool_display = f"[Tool: {tool_use.name} -> {result}]"
-            yield ("\n" + "-" * 40 + "\n" + tool_display, tool_display, False)
+            yield (
+                "\n\n"
+                + "=" * 40
+                + "\n[TOOL CALL]\n"
+                + "=" * 40
+                + "\n\n"
+                + tool_display,
+                tool_display,
+                False,
+            )
 
             self.messages.append(
                 MessageParam(
@@ -221,7 +230,11 @@ class ClaudeChat:
             )
 
             # Stream the follow-up response
-            yield ("\n" + "-" * 40 + "\n", None, False)
+            yield (
+                "\n\n" + "=" * 40 + "\n[ASSISTANT MESSAGE]\n" + "=" * 40 + "\n\n",
+                None,
+                False,
+            )
             with self.client.messages.stream(
                 model=self.model,
                 max_tokens=1000,

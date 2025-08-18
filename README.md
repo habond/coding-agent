@@ -79,7 +79,9 @@ docker-compose run --rm claude-cli python src/main.py "Your message"
 **Interactive Mode Features:**
 - Real-time streaming responses as Claude generates them
 - Visual separators between user inputs, Claude responses, and tool calls
-- Clear delineation with `========` for user turns and `--------` for assistant/tool turns
+- Clear delineation with `========` borders for all interaction types
+- Labeled interactions: [USER MESSAGE], [ASSISTANT MESSAGE], and [TOOL CALL]
+- Consistent formatting with proper spacing and visual hierarchy
 - Graceful handling of piped input and EOF conditions
 
 #### Local Mode (Development)

@@ -135,7 +135,9 @@ docker compose run --rm claude-cli mypy src/
 The application uses Anthropic's streaming API for real-time output:
 - **`send_message_stream()`**: Generator method that yields text chunks as they arrive
 - **`_handle_tool_use_stream()`**: Maintains streaming even during tool execution with recursive handling
-- **Visual boundaries**: Uses `=` (40 chars) for user turns and `-` (40 chars) for assistant/tool turns
+- **Visual boundaries**: Uses `=` (40 chars) for all interaction boundaries with consistent formatting
+- **Labeled interactions**: Each section is clearly labeled as [USER MESSAGE], [ASSISTANT MESSAGE], or [TOOL CALL]
+- **Consistent spacing**: Each label is surrounded by equal signs and has proper spacing for readability
 - **Continuous streaming**: Response continues to stream even after tool calls complete
 
 **Key Architecture**: The streaming system handles tool use by storing conversation state in `self.messages`, executing tools synchronously, then continuing to stream the follow-up response. This maintains the conversational flow while providing immediate visual feedback.
@@ -180,17 +182,36 @@ The `sandbox/` directory serves as a secure working area for the AI assistant:
 ```
 
 #### Interactive Mode Display
-In REPL mode, the conversation flow is clearly delineated:
+In REPL mode, the conversation flow is clearly labeled and delineated:
 ```
 ========================================
-You: [user input here]
-----------------------------------------
-Claude: [streaming response begins here...]
-----------------------------------------
-[Tool: tool_name -> result]
-----------------------------------------
-[Claude's follow-up response continues streaming...]
+[USER MESSAGE]
 ========================================
+
+You: [user input here]
+
+========================================
+[ASSISTANT MESSAGE]
+========================================
+
+Claude: [streaming response begins here...]
+
+========================================
+[TOOL CALL]
+========================================
+
+[Tool: tool_name -> result]
+
+========================================
+[ASSISTANT MESSAGE]
+========================================
+
+[Claude's follow-up response continues streaming...]
+
+========================================
+[USER MESSAGE]
+========================================
+
 You: [next user input]
 ```
 
