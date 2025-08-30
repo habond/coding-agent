@@ -156,11 +156,20 @@ The tool system uses strongly typed interfaces defined in `src/models.py`:
 - **`AbstractToolRegistry`**: Abstract base class providing common tool registry functionality
 
 #### Available Tools
+
+**File Operations:**
 - **`read_file`**: Reads the full contents of files within the sandbox directory
 - **`write_file`**: Writes content to files within the sandbox directory (supports overwrite and append modes)
+- **`edit_file`**: Find and replace text in files (supports single or all occurrences via replace_all parameter)
 - **`list_files`**: Recursively lists all files in a directory within the sandbox
 - **`rename_file`**: Renames or moves files within the sandbox directory (creates destination directories as needed)
+- **`move_file`**: Moves files between directories within the sandbox (supports renaming during move)
 - **`delete_file`**: Deletes files within the sandbox directory (with comprehensive safety checks)
+
+**Directory Operations:**
+- **`create_directory`**: Creates directories within the sandbox (including parent directories as needed)
+- **`rename_directory`**: Renames or moves directories within the sandbox (creates parent directories as needed)
+- **`delete_directory`**: Deletes directories within the sandbox (supports force deletion of non-empty directories)
 
 **Tool Discovery**: Tools are auto-loaded from `src/tools/` using dynamic imports. Each tool must export `TOOL_METADATA` with `name`, `description`, `handler`, and `input_schema`.
 
